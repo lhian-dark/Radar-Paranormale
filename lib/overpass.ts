@@ -14,27 +14,16 @@ function buildQuery(lat: number, lng: number, radiusMeters: number): string {
   return `
 [out:json][timeout:30];
 (
-  node["historic"="ruins"]["name"](around:${radiusMeters},${lat},${lng});
-  way["historic"="ruins"]["name"](around:${radiusMeters},${lat},${lng});
-  node["historic"="castle"]["name"](around:${radiusMeters},${lat},${lng});
-  way["historic"="castle"]["name"](around:${radiusMeters},${lat},${lng});
-  node["historic"="fort"]["name"](around:${radiusMeters},${lat},${lng});
-  node["amenity"="grave_yard"]["name"](around:${radiusMeters},${lat},${lng});
-  way["amenity"="grave_yard"]["name"](around:${radiusMeters},${lat},${lng});
-  node["landuse"="cemetery"]["name"](around:${radiusMeters},${lat},${lng});
-  way["landuse"="cemetery"]["name"](around:${radiusMeters},${lat},${lng});
-  node["building"="abandoned"]["name"](around:${radiusMeters},${lat},${lng});
-  node["abandoned"]["name"](around:${radiusMeters},${lat},${lng});
-  node["disused"]["name"](around:${radiusMeters},${lat},${lng});
-  node["historic"="monastery"]["name"](around:${radiusMeters},${lat},${lng});
-  node["historic"="church"]["name"](around:${radiusMeters},${lat},${lng});
-  way["historic"="church"]["name"](around:${radiusMeters},${lat},${lng});
-  node["historic"="manor"]["name"](around:${radiusMeters},${lat},${lng});
-  way["historic"="manor"]["name"](around:${radiusMeters},${lat},${lng});
-  node["historic"="archaeological_site"]["name"](around:${radiusMeters},${lat},${lng});
-  node["tourism"="attraction"]["historic"]["name"](around:${radiusMeters},${lat},${lng});
-  node["historic"="battlefield"]["name"](around:${radiusMeters},${lat},${lng});
-  node["historic"="tomb"]["name"](around:${radiusMeters},${lat},${lng});
+  node(around:${radiusMeters},${lat},${lng})["historic"~"ruins|castle|fort|monastery|church|manor|archaeological_site|battlefield|tomb"];
+  way(around:${radiusMeters},${lat},${lng})["historic"~"ruins|castle|fort|monastery|church|manor|archaeological_site|battlefield|tomb"];
+  node(around:${radiusMeters},${lat},${lng})["amenity"~"grave_yard|church"];
+  way(around:${radiusMeters},${lat},${lng})["amenity"~"grave_yard|church"];
+  node(around:${radiusMeters},${lat},${lng})["landuse"="cemetery"];
+  way(around:${radiusMeters},${lat},${lng})["landuse"="cemetery"];
+  node(around:${radiusMeters},${lat},${lng})["building"="abandoned"];
+  node(around:${radiusMeters},${lat},${lng})["abandoned"];
+  node(around:${radiusMeters},${lat},${lng})["disused"];
+  node(around:${radiusMeters},${lat},${lng})["tourism"="attraction"]["historic"];
 );
 out body center;
 `;
@@ -62,13 +51,17 @@ function detectCategory(tags: Record<string, string>): string {
   if (h === 'castle' || h === 'fort') return 'castello';
   if (h === 'ruins') return 'rovine';
   if (h === 'monastery') return 'monastero';
-  if (h === 'church') return 'chiesa';
+  if (h === 'church' || a === 'church') return 'chiesa';
   if (h === 'manor') return 'villa';
   if (h === 'battlefield') return 'campo_battaglia';
   if (h === 'tomb') return 'tomba';
   if (h === 'archaeological_site') return 'sito_archeologico';
   if (tags.abandoned || tags.disused || b === 'abandoned') return 'abbandonato';
   return 'storico';
+}
+
+function getName(tags: Record<string, string>): string {
+  return tags.name || tags['name:it'] || tags['name:en'] || tags.official_name || "";
 }
 
 export async function fetchParanormalPlaces(
@@ -79,22 +72,30 @@ export async function fetchParanormalPlaces(
   const radiusMeters = radiusKm * 1000;
   const query = buildQuery(lat, lng, radiusMeters);
 
+  console.log(`📡 Overpass Query Start: lat=${lat}, lng=${lng}`);
   const res = await fetch(OVERPASS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: `data=${encodeURIComponent(query)}`,
-    next: { revalidate: 3600 }, // Next.js cache 1 hour
+    cache: 'no-store', // Disable cache for debugging
   });
 
-  if (!res.ok) throw new Error(`Overpass API error: ${res.status}`);
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error(`❌ Overpass API error: ${res.status}`, errorText);
+    throw new Error(`Overpass API error: ${res.status}`);
+  }
 
   const data = await res.json();
+  const rawElements = data.elements || [];
+  console.log(`✅ Overpass returned ${rawElements.length} elements.`);
 
-  const places: OsmPlace[] = (data.elements || [])
+  const places: OsmPlace[] = rawElements
     .filter((el: any) => {
       const elLat = el.lat ?? el.center?.lat;
       const elLng = el.lon ?? el.center?.lon;
-      return elLat && elLng && el.tags?.name;
+      const name = getName(el.tags || {});
+      return elLat && elLng && name;
     })
     .map((el: any) => {
       const elLat = el.lat ?? el.center?.lat;
@@ -104,7 +105,7 @@ export async function fetchParanormalPlaces(
         lat: elLat,
         lng: elLng,
         tags: el.tags || {},
-        name: el.tags.name,
+        name: getName(el.tags),
         category: detectCategory(el.tags),
         distanceKm: Math.round(calcDistanceKm(lat, lng, elLat, elLng) * 10) / 10,
       } as OsmPlace;
@@ -113,5 +114,6 @@ export async function fetchParanormalPlaces(
     .sort((a: OsmPlace, b: OsmPlace) => a.distanceKm - b.distanceKm)
     .slice(0, 60);
 
+  console.log(`🔮 Final filtered places: ${places.length}`);
   return places;
 }

@@ -13,13 +13,16 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    console.log(`📡 API Radar: Ricerca a lat=${lat}, lng=${lng}, raggio=${raggio}km`);
     const places = await fetchParanormalPlaces(lat, lng, raggio);
+    console.log(`✅ API Radar: Trovati ${places.length} luoghi.`);
     const enriched = places.map((p) => ({
       ...p,
       description: generateDescription(p),
     }));
     return NextResponse.json({ luoghi: enriched });
   } catch (err: any) {
+    console.error('❌ API Radar Error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
