@@ -103,10 +103,13 @@ export default function HomePage() {
     const initialPlaces = famousLuoghi.sort((a,b) => a.distanceKm - b.distanceKm);
     setLuoghi(initialPlaces);
     
-    // Mostriamo subito i famosi, ma teniamo lo stato 'loading' finché OSM non risponde
-    console.log(`📡 Famous loaded: ${initialPlaces.length}`);
+    // DIAGNOSTICA IN CONSOLE
+    console.log(`📡 RADAR SCAN: Found ${initialPlaces.length} Famous Mysteries nearby.`);
+    if (initialPlaces.length > 0) {
+      console.log(`🔝 Top 3 Famous:`, initialPlaces.slice(0, 3).map(p => p.name));
+    }
 
-    // 2. SCANSIONE IBRIDA ASINCRONA
+    // 2. SCANSIONE IBRIDA ASINCRONA (OSM + User)
     try {
       const [osmRes, userPlacesData] = await Promise.all([
         fetch(`/api/luoghi?lat=${lat}&lng=${lng}&raggio=100`)
@@ -144,16 +147,20 @@ export default function HomePage() {
         };
       });
 
-      console.log(`✅ Scan result: OSM(${osmLuoghi.length}) User(${userLuoghi.length})`);
+      console.log(`✅ SCAN FINISHED: OSM(${osmLuoghi.length}) User(${userLuoghi.length}) Elite(${initialPlaces.length})`);
 
-      const totalCombined = [...userLuoghi, ...famousLuoghi, ...osmLuoghi.slice(0, 100)]
-        .sort((a, b) => a.distanceKm - b.distanceKm);
+      // Uniamo tutto assicurandoci che i Famosi (initialPlaces) siano INCLUSI
+      const totalCombined = [...userLuoghi, ...initialPlaces, ...osmLuoghi]
+        .filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i) // Rimuovi eventuali duplicati di ID
+        .sort((a, b) => a.distanceKm - b.distanceKm)
+        .slice(0, 150); // Limite per non saturare la mappa
 
       setLuoghi(totalCombined);
       setState('ready');
     } catch (err) {
       console.error("❌ Hybrid scan failed:", err);
-      setState('ready'); // Fallback: mostriamo ciò che abbiamo (i famosi)
+      // Fallback: mostriamo ciò che abbiamo (i famosi iniziali)
+      setState('ready');
     }
   };
 
@@ -180,7 +187,9 @@ export default function HomePage() {
           <div>
             <h1 className="text-lg font-bold text-white leading-tight">Radar Paranormale</h1>
             <p className="text-xs text-purple-400 hidden sm:block">
-              {state === 'ready' ? `${luoghi.length} luoghi rilevati · 100km` : 'Scansione in corso...'}
+              {state === 'ready' 
+                ? `🎯 ${luoghi.filter(p=>p.isFamous).length} Élite · 👻 ${luoghi.filter(p=>!p.isFamous && !p.isUserPlace).length} OSM · 🏳️ 100km` 
+                : '📡 Scansione frequenze in corso...'}
             </p>
           </div>
         </div>
