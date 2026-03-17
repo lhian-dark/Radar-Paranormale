@@ -16,7 +16,9 @@ const OVERPASS_MIRRORS = [
 ];
 
 function buildQuery(lat: number, lng: number, radiusMeters: number): string {
-  return `[out:json][timeout:30];(node(around:${radiusMeters},${lat},${lng})["historic"];way(around:${radiusMeters},${lat},${lng})["historic"];node(around:${radiusMeters},${lat},${lng})["building"~"ruins|abandoned"];way(around:${radiusMeters},${lat},${lng})["building"~"ruins|abandoned"];node(around:${radiusMeters},${lat},${lng})["abandoned"="yes"];way(around:${radiusMeters},${lat},${lng})["abandoned"="yes"];);out body center;`;
+  // Query ottimizzata: nwr (node, way, relation) con tag mirati per performance su 100km
+  const tags = "castle|fort|manor|tower|ruins|archaeological_site|monument|tomb|monastery|convent|hospital|battlefield|prison|psychiatric";
+  return `[out:json][timeout:60];(nwr(around:${radiusMeters},${lat},${lng})["historic"~"${tags}"];nwr(around:${radiusMeters},${lat},${lng})["building"~"ruins|abandoned|collapsed"];nwr(around:${radiusMeters},${lat},${lng})["abandoned"="yes"];);out center;`;
 }
 
 function calcDistanceKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -38,29 +40,22 @@ function detectCategory(tags: Record<string, string>): string {
   const land = tags.landuse || '';
   const name = (tags.name || '').toLowerCase();
   
-  // Testo per folklore (Priorità alta)
   const text = (name + (tags.description || '') + (tags.note || '')).toLowerCase();
   if (text.includes('leggenda') || text.includes('folklore') || text.includes('mistero') || text.includes('fantasma')) return 'storico';
 
-  // Manicomi e Ospedali (spesso taggati come hospital o social_facility + abandoned)
   if (a === 'hospital' || a === 'social_facility' || name.includes('manicomio') || name.includes('ospedale') || name.includes('asylum') || name.includes('psichiatr')) {
     if (tags.abandoned || b === 'abandoned' || h || tags.disused) return 'manicomio';
   }
 
-  // Carceri
-  if (a === 'prison' || h === 'prison' || name.includes('carcere') || name.includes('prigione') || name.includes('penitenziario')) {
-    return 'carcere';
-  }
-
+  if (a === 'prison' || h === 'prison' || name.includes('carcere') || name.includes('prigione')) return 'carcere';
   if (a === 'grave_yard' || land === 'cemetery' || h === 'tomb') return 'cimitero';
   if (h === 'castle' || h === 'fort' || h === 'manor') return 'castello';
   if (h === 'ruins' || b === 'ruins' || b === 'collapsed') return 'rovine';
   if (h === 'monastery' || a === 'monastery' || h === 'convent') return 'monastero';
   if (a === 'church' && (tags.abandoned || b === 'abandoned')) return 'abbandonato'; 
   if (h === 'church' || a === 'church') return 'chiesa';
-  if (h === 'monument' || h === 'memorial' || h === 'tower') return 'storico';
+  if (h === 'monument' || h === 'memorial' || h === 'tower' || h === 'battlefield') return 'storico';
   if (h === 'archaeological_site') return 'sito_archeologico';
-  
   if (tags.abandoned || tags.disused || b === 'abandoned' || b === 'disused') return 'abbandonato';
   return 'storico';
 }
@@ -80,34 +75,35 @@ export async function fetchParanormalPlaces(
 
   for (const mirror of OVERPASS_MIRRORS) {
     try {
-      console.log(`📡 Trying Overpass mirror: ${mirror}`);
+      console.log(`📡 Fetching OSM from mirror: ${mirror}`);
       const res = await fetch(mirror, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `data=${encodeURIComponent(query)}`,
-        signal: AbortSignal.timeout(15000), 
+        headers: { 
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'RadarParanormale/1.0 (Italy Paranormal Research App)'
+        },
+        body: `data=${encodeURIComponent(query)}`
       });
 
       if (!res.ok) {
-        console.warn(`⚠️ ${mirror} status: ${res.status}`);
-        lastError = new Error(`Overpass error: ${res.status}`);
+        console.warn(`⚠️ Mirror ${mirror} returned ${res.status}`);
         continue;
       }
 
       const data = await res.json();
       const rawElements = data.elements || [];
-      console.log(`✅ ${mirror} returned ${rawElements.length} elements.`);
-      
-      const places: OsmPlace[] = rawElements
+      console.log(`✅ Received ${rawElements.length} elements from ${mirror}`);
+
+      return rawElements
         .filter((el: any) => {
           const elLat = el.lat ?? el.center?.lat;
-          const elLng = el.lon ?? el.center?.lon;
+          const elLng = el.lon ?? el.center?.lng ?? el.center?.lon;
           const name = getName(el.tags || {});
           return elLat && elLng && name;
         })
         .map((el: any) => {
           const elLat = el.lat ?? el.center?.lat;
-          const elLng = el.lon ?? el.center?.lon;
+          const elLng = el.lon ?? el.center?.lng ?? el.center?.lon;
           return {
             id: el.id,
             lat: elLat,
@@ -121,13 +117,11 @@ export async function fetchParanormalPlaces(
         .filter((p: OsmPlace) => p.distanceKm <= radiusKm)
         .sort((a: OsmPlace, b: OsmPlace) => a.distanceKm - b.distanceKm);
 
-      return places;
-    } catch (err: any) {
-      console.error(`❌ Mirror ${mirror} failed:`, err.message);
-      lastError = err;
+    } catch (e: any) {
+      console.error(`❌ Fetch error on ${mirror}:`, e.message);
+      lastError = e;
     }
   }
 
-  console.error("❌ All Overpass mirrors failed.");
-  throw lastError || new Error("All mirrors failed.");
+  throw lastError || new Error("Failed to fetch from all Overpass mirrors.");
 }
