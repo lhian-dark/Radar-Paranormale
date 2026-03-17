@@ -76,7 +76,7 @@ export default function HomePage() {
   const loadLuoghi = async (lat: number, lng: number) => {
     setState('loading');
     
-    // 1. CARICHIAMO SUBITO I FAMOSI (Locale, istantaneo)
+    // 1. CALCOLO ISTANTANEO FAMOSI
     const famousLuoghi: Place[] = MISTERI_FAMOSI.map((p) => {
       const R = 6371;
       const dLat = ((p.lat - lat) * Math.PI) / 180;
@@ -98,23 +98,24 @@ export default function HomePage() {
         distanceKm: dist,
         isFamous: true,
       };
-    }).filter(p => p.distanceKm <= 100); // RIPRISTINATO RAGGIO RIGIDO A 100KM
+    }).filter(p => p.distanceKm <= 100);
 
-    setLuoghi(famousLuoghi.sort((a,b) => a.distanceKm - b.distanceKm));
+    const initialPlaces = famousLuoghi.sort((a,b) => a.distanceKm - b.distanceKm);
+    setLuoghi(initialPlaces);
+    
+    // Mostriamo subito i famosi, ma teniamo lo stato 'loading' finché OSM non risponde
+    console.log(`📡 Famous loaded: ${initialPlaces.length}`);
 
-    // 2. CARICHIAMO OSM E UTENTI IN PARALLELO (Async)
+    // 2. SCANSIONE IBRIDA ASINCRONA
     try {
-      const [osmRes, userPlaces] = await Promise.allSettled([
-        fetch(`/api/luoghi?lat=${lat}&lng=${lng}&raggio=100`).then((r) => r.json()),
-        getUserPlaces(lat, lng, 100),
+      const [osmRes, userPlacesData] = await Promise.all([
+        fetch(`/api/luoghi?lat=${lat}&lng=${lng}&raggio=100`)
+          .then(r => r.json())
+          .catch(e => ({ error: e.message, luoghi: [] })),
+        getUserPlaces(lat, lng, 100).catch(() => [])
       ]);
 
-      const osmData = (osmRes.status === 'fulfilled' && !osmRes.value.error) ? osmRes.value : { luoghi: [] };
-      const userPlacesData = userPlaces.status === 'fulfilled' ? userPlaces.value : [];
-
-      console.log(`📡 Async Scan results: OSM(${osmData?.luoghi?.length || 0}) User(${userPlacesData?.length || 0})`);
-
-      const osmLuoghi: Place[] = (osmData?.luoghi || []).map((p: any) => ({
+      const osmLuoghi: Place[] = ((osmRes as any)?.luoghi || []).map((p: any) => ({
         id: p.id,
         name: p.name,
         description: p.description || generateDescription(p),
@@ -124,17 +125,12 @@ export default function HomePage() {
         distanceKm: p.distanceKm,
       }));
 
-      const userLuoghi: Place[] = (userPlacesData || []).map((p: any) => {
+      const userLuoghi: Place[] = ((userPlacesData as any) || []).map((p: any) => {
         const R = 6371;
         const dLat = ((p.lat - lat) * Math.PI) / 180;
         const dLng = ((p.lng - lng) * Math.PI) / 180;
-        const a =
-          Math.sin(dLat / 2) ** 2 +
-          Math.cos((lat * Math.PI) / 180) *
-            Math.cos((p.lat * Math.PI) / 180) *
-            Math.sin(dLng / 2) ** 2;
+        const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat * Math.PI) / 180) * Math.cos((p.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
         const dist = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
-
         return {
           id: `user-${p.$id}`,
           name: p.name,
@@ -148,20 +144,18 @@ export default function HomePage() {
         };
       });
 
-      const sortedOsm = osmLuoghi.sort((a, b) => a.distanceKm - b.distanceKm).slice(0, 80);
-      const totalCombined = [...userLuoghi, ...famousLuoghi, ...sortedOsm]
+      console.log(`✅ Scan result: OSM(${osmLuoghi.length}) User(${userLuoghi.length})`);
+
+      const totalCombined = [...userLuoghi, ...famousLuoghi, ...osmLuoghi.slice(0, 100)]
         .sort((a, b) => a.distanceKm - b.distanceKm);
 
-      console.log(`✨ Rendering total: ${totalCombined.length} places.`);
       setLuoghi(totalCombined);
       setState('ready');
     } catch (err) {
-      console.error("❌ Critical load error in page.tsx:", err);
-      // In caso di errore estremo, mostriamo almeno i famosi già calcolati
-      setLuoghi(famousLuoghi.sort((a,b) => a.distanceKm - b.distanceKm));
-      setState('ready');
+      console.error("❌ Hybrid scan failed:", err);
+      setState('ready'); // Fallback: mostriamo ciò che abbiamo (i famosi)
     }
-  }
+  };
 
   const handleSelectPlace = (id: number | string) => {
     setSelectedId(id);
