@@ -6,6 +6,7 @@ import LuoghiList from '@/components/LuoghiList';
 import AddPlaceForm from '@/components/AddPlaceForm';
 import { loginGoogle, getSession, logout, getUserPlaces } from '@/lib/appwrite';
 import { generateDescription } from '@/lib/descriptions';
+import { MISTERI_FAMOSI } from '@/lib/data/misteri_famosi';
 
 const RadarMap = dynamic(() => import('@/components/RadarMap'), { ssr: false });
 
@@ -19,6 +20,7 @@ interface Place {
   distanceKm: number;
   isUserPlace?: boolean;
   userName?: string;
+  isFamous?: boolean;
 }
 
 type AppState = 'idle' | 'locating' | 'loading' | 'ready' | 'error';
@@ -71,59 +73,91 @@ export default function HomePage() {
     );
   }, []);
 
-  const loadLuoghi = (lat: number, lng: number) => {
+  const loadLuoghi = async (lat: number, lng: number) => {
     setState('loading');
-    Promise.all([
-      fetch(`/api/luoghi?lat=${lat}&lng=${lng}&raggio=100`).then((r) => r.json()),
-      getUserPlaces(lat, lng, 100),
-    ])
-      .then(([osmData, userPlaces]) => {
-        const osmLuoghi: Place[] = ((osmData && osmData.luoghi) || []).map((p: any) => ({
-          id: p.id,
+    
+    // 1. CARICHIAMO SUBITO I FAMOSI (Locale, istantaneo)
+    const famousLuoghi: Place[] = MISTERI_FAMOSI.map((p) => {
+      const R = 6371;
+      const dLat = ((p.lat - lat) * Math.PI) / 180;
+      const dLng = ((p.lng - lng) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos((lat * Math.PI) / 180) *
+          Math.cos((p.lat * Math.PI) / 180) *
+          Math.sin(dLng / 2) ** 2;
+      const dist = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
+
+      return {
+        id: `famous-${p.id}`,
+        name: p.name,
+        description: p.description,
+        category: p.category,
+        lat: p.lat,
+        lng: p.lng,
+        distanceKm: dist,
+        isFamous: true,
+      };
+    }).filter(p => p.distanceKm <= 250);
+
+    setLuoghi(famousLuoghi.sort((a,b) => a.distanceKm - b.distanceKm));
+
+    // 2. CARICHIAMO OSM E UTENTI IN PARALLELO (Async)
+    try {
+      const [osmRes, userPlaces] = await Promise.allSettled([
+        fetch(`/api/luoghi?lat=${lat}&lng=${lng}&raggio=100`).then((r) => r.json()),
+        getUserPlaces(lat, lng, 100),
+      ]);
+
+      const osmData = osmRes.status === 'fulfilled' ? osmRes.value : { luoghi: [] };
+      const userPlacesData = userPlaces.status === 'fulfilled' ? userPlaces.value : [];
+
+      console.log(`📡 Async Scan complete: OSM(${osmData.luoghi?.length || 0}) User(${userPlacesData.length})`);
+
+      const osmLuoghi: Place[] = (osmData.luoghi || []).map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description || generateDescription(p),
+        category: p.category,
+        lat: p.lat,
+        lng: p.lng,
+        distanceKm: p.distanceKm,
+      }));
+
+      const userLuoghi: Place[] = (userPlacesData || []).map((p: any) => {
+        const R = 6371;
+        const dLat = ((p.lat - lat) * Math.PI) / 180;
+        const dLng = ((p.lng - lng) * Math.PI) / 180;
+        const a =
+          Math.sin(dLat / 2) ** 2 +
+          Math.cos((lat * Math.PI) / 180) *
+            Math.cos((p.lat * Math.PI) / 180) *
+            Math.sin(dLng / 2) ** 2;
+        const dist = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
+
+        return {
+          id: `user-${p.$id}`,
           name: p.name,
-          description: p.description || generateDescription(p),
+          description: p.description,
           category: p.category,
           lat: p.lat,
           lng: p.lng,
-          distanceKm: p.distanceKm,
-        }));
-
-        const userLuoghi: Place[] = (userPlaces || []).map((p: any) => {
-          const R = 6371;
-          const dLat = ((p.lat - lat) * Math.PI) / 180;
-          const dLng = ((p.lng - lng) * Math.PI) / 180;
-          const a =
-            Math.sin(dLat / 2) ** 2 +
-            Math.cos((lat * Math.PI) / 180) *
-              Math.cos((p.lat * Math.PI) / 180) *
-              Math.sin(dLng / 2) ** 2;
-          const dist = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
-
-          return {
-            id: `user-${p.$id}`,
-            name: p.name,
-            description: p.description,
-            category: p.category,
-            lat: p.lat,
-            lng: p.lng,
-            distanceKm: dist,
-            isUserPlace: true,
-            userName: p.userName,
-          };
-        });
-
-        const total = [...userLuoghi, ...osmLuoghi]
-          .sort((a, b) => a.distanceKm - b.distanceKm)
-          .slice(0, 100);
-
-        setLuoghi(total);
-        setState('ready');
-      })
-      .catch((err) => {
-        console.error(err);
-        setState('error');
-        setErrorMsg('Errore nel caricamento dei luoghi. Riprova.');
+          distanceKm: dist,
+          isUserPlace: true,
+          userName: p.userName,
+        };
       });
+
+      const sortedOsm = osmLuoghi.sort((a, b) => a.distanceKm - b.distanceKm).slice(0, 80);
+      const total = [...userLuoghi, ...famousLuoghi, ...sortedOsm]
+        .sort((a, b) => a.distanceKm - b.distanceKm);
+
+      setLuoghi(total);
+      setState('ready');
+    } catch (err) {
+      console.error("Errore parziale caricamento:", err);
+      setState('ready'); // Almeno i famosi sono visibili
+    }
   }
 
   const handleSelectPlace = (id: number | string) => {

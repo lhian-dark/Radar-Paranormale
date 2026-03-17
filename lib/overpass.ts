@@ -11,58 +11,26 @@ export interface OsmPlace {
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
 
 function buildQuery(lat: number, lng: number, radiusMeters: number): string {
-  // Parole chiave estese per il folklore e il paranormale
+  // Parole chiave per beccare leggende specifiche (usate come filtro aggiuntivo)
   const keywords = "leggenda|legend|mistero|mystery|folklore|fantasma|ghost|haunted|apparizione|maledetto|curse|spirito|spirit|occulto|esoterico";
   
   return `
 [out:json][timeout:60];
 (
-  // Castelli, Fortezze, Manieri, Torri Storiche
-  node(around:${radiusMeters},${lat},${lng})["historic"~"castle|fort|manor|tower|city_gate|citywalls"];
-  way(around:${radiusMeters},${lat},${lng})["historic"~"castle|fort|manor|tower|city_gate|citywalls"];
+  // Storico, Castelli, Rovine, Monumenti
+  nwr(around:${radiusMeters},${lat},${lng})["historic"~"castle|fort|manor|tower|ruins|archaeological_site|monument|memorial|tomb|monastery|convent|hospital|battlefield"];
   
-  // Rovine, Ruderi, Siti Archeologici
-  node(around:${radiusMeters},${lat},${lng})["historic"~"ruins|archaeological_site|monument|memorial"];
-  way(around:${radiusMeters},${lat},${lng})["historic"~"ruins|archaeological_site|monument|memorial"];
-  node(around:${radiusMeters},${lat},${lng})["building"~"ruins|collapsed"];
-  way(around:${radiusMeters},${lat},${lng})["building"~"ruins|collapsed"];
+  // Edifici e Strutture Abbandonate/Dismesse
+  nwr(around:${radiusMeters},${lat},${lng})["building"~"ruins|collapsed|abandoned|disused"];
+  nwr(around:${radiusMeters},${lat},${lng})["abandoned"~"yes|abandoned|disused"];
+  nwr(around:${radiusMeters},${lat},${lng})["disused"~"yes|abandoned|disused"];
 
-  // Cimiteri Antichi e Tombe
-  node(around:${radiusMeters},${lat},${lng})["amenity"="grave_yard"];
-  way(around:${radiusMeters},${lat},${lng})["amenity"="grave_yard"];
-  node(around:${radiusMeters},${lat},${lng})["landuse"="cemetery"];
-  way(around:${radiusMeters},${lat},${lng})["landuse"="cemetery"];
-  node(around:${radiusMeters},${lat},${lng})["historic"="tomb"];
-  way(around:${radiusMeters},${lat},${lng})["historic"="tomb"];
+  // Cimiteri e Luoghi Sacri
+  nwr(around:${radiusMeters},${lat},${lng})["amenity"~"grave_yard|hospital|psychiatric|church|monastery|convent"];
+  nwr(around:${radiusMeters},${lat},${lng})["landuse"="cemetery"];
 
-  // STRUTTURE ABBANDONATE (Il cuore del radar)
-  // Include Manicomi (hospital), Carceri (prison), Monasteri, Fabbriche
-  node(around:${radiusMeters},${lat},${lng})["abandoned"~"yes|abandoned|disused"];
-  way(around:${radiusMeters},${lat},${lng})["abandoned"~"yes|abandoned|disused"];
-  node(around:${radiusMeters},${lat},${lng})["disused"~"yes|abandoned|disused"];
-  way(around:${radiusMeters},${lat},${lng})["disused"~"yes|abandoned|disused"];
-  node(around:${radiusMeters},${lat},${lng})["building"~"abandoned|disused|collapsed"];
-  way(around:${radiusMeters},${lat},${lng})["building"~"abandoned|disused|collapsed"];
-  
-  // Ospedali e Manicomi Storici/Abbandonati
-  node(around:${radiusMeters},${lat},${lng})["amenity"~"hospital|social_facility"]["historic"];
-  way(around:${radiusMeters},${lat},${lng})["amenity"~"hospital|social_facility"]["historic"];
-  node(around:${radiusMeters},${lat},${lng})["amenity"~"hospital|social_facility"]["abandoned"];
-  way(around:${radiusMeters},${lat},${lng})["amenity"~"hospital|social_facility"]["abandoned"];
-
-  // Siti Religiosi Antichi/Abbandonati
-  node(around:${radiusMeters},${lat},${lng})["amenity"~"church|monastery|convent"]["historic"];
-  way(around:${radiusMeters},${lat},${lng})["amenity"~"church|monastery|convent"]["historic"];
-  node(around:${radiusMeters},${lat},${lng})["amenity"~"church|monastery|convent"]["abandoned"];
-  way(around:${radiusMeters},${lat},${lng})["amenity"~"church|monastery|convent"]["abandoned"];
-
-  // Ricerca per Parole Chiave (per beccare leggende specifiche)
-  node(around:${radiusMeters},${lat},${lng})["name"~"${keywords}",i];
-  node(around:${radiusMeters},${lat},${lng})["description"~"${keywords}",i];
-  node(around:${radiusMeters},${lat},${lng})["note"~"${keywords}",i];
-  way(around:${radiusMeters},${lat},${lng})["name"~"${keywords}",i];
-  way(around:${radiusMeters},${lat},${lng})["description"~"${keywords}",i];
-  way(around:${radiusMeters},${lat},${lng})["note"~"${keywords}",i];
+  // Ricerca testuale mirata (solo su nodi che hanno un nome)
+  nwr(around:${radiusMeters},${lat},${lng})["name"~"${keywords}",i];
 );
 out body center;
 `;
