@@ -12,6 +12,7 @@ interface Place {
   category: string;
   distanceKm: number;
   isUserPlace?: boolean;
+  isFamous?: boolean;
 }
 
 interface Props {
@@ -29,15 +30,15 @@ const userIcon = L.divIcon({
   iconAnchor: [10, 10],
 });
 
-const placeIcon = (isUser: boolean, selected: boolean) =>
+const placeIcon = (isUser: boolean, isFamous: boolean, selected: boolean) =>
   L.divIcon({
     className: '',
     html: `<div style="
       font-size:${selected ? '28px' : '22px'};
-      filter:drop-shadow(0 0 ${selected ? '10px' : '5px'} #a855f7);
+      filter:drop-shadow(0 0 ${selected ? '10px' : '5px'} ${isFamous ? '#ff4d4d' : '#a855f7'});
       transition:all 0.2s;
       transform:${selected ? 'scale(1.3)' : 'scale(1)'};
-    ">${isUser ? '📍' : '👻'}</div>`,
+    ">${isUser ? '📍' : isFamous ? '💀' : '👻'}</div>`,
     iconSize: [selected ? 36 : 28, selected ? 36 : 28],
     iconAnchor: [selected ? 18 : 14, selected ? 18 : 14],
   });
@@ -84,7 +85,7 @@ export default function MapInner({ userLat, userLng, places, onSelectPlace, sele
         <Marker
           key={p.id}
           position={[p.lat, p.lng]}
-          icon={placeIcon(!!p.isUserPlace, p.id === selectedId)}
+          icon={placeIcon(!!p.isUserPlace, !!p.isFamous, p.id === selectedId)}
           eventHandlers={{ click: () => onSelectPlace(p.id) }}
         >
           <Popup>

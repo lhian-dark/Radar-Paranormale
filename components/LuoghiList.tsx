@@ -12,6 +12,7 @@ interface Place {
   lng: number;
   isUserPlace?: boolean;
   userName?: string;
+  isFamous?: boolean;
 }
 
 interface Props {
@@ -22,7 +23,7 @@ interface Props {
 }
 
 export default function LuoghiList({ luoghi, selectedId, onSelect, loading }: Props) {
-  if (loading) {
+  if (loading && luoghi.length === 0) {
     return (
       <div className="flex flex-col gap-4 p-4">
         {[1, 2, 3, 4].map((i) => (
@@ -61,13 +62,20 @@ export default function LuoghiList({ luoghi, selectedId, onSelect, loading }: Pr
           >
             <div className="flex items-start justify-between gap-3 mb-2">
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <span className="text-xl shrink-0">{getCategoryEmoji(p.category)}</span>
+                <span className="text-xl shrink-0">
+                  {p.isFamous ? '💀' : getCategoryEmoji(p.category)}
+                </span>
                 <div className="min-w-0">
                   <h3 className="font-bold text-white truncate text-sm leading-tight">{p.name}</h3>
                   <div className="flex flex-wrap gap-2 mt-1">
                     <span className="text-xs text-purple-400">
-                      {getCategoryLabel(p.category)}
+                      {p.isFamous ? 'Mistero Celebre' : getCategoryLabel(p.category)}
                     </span>
+                    {p.isFamous && (
+                      <span className="text-[10px] bg-red-900/50 text-red-400 px-2 py-0.5 rounded-full border border-red-700/50 animate-pulse uppercase tracking-wider font-bold">
+                        Élite
+                      </span>
+                    )}
                     {p.isUserPlace && (
                       <span className="text-[10px] bg-amber-900/50 text-amber-400 px-2 py-0.5 rounded-full border border-amber-700/50">
                         👤 {p.userName || 'Utente'}

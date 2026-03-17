@@ -11,26 +11,28 @@ export interface OsmPlace {
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
 
 function buildQuery(lat: number, lng: number, radiusMeters: number): string {
-  // Parole chiave per beccare leggende specifiche (usate come filtro aggiuntivo)
-  const keywords = "leggenda|legend|mistero|mystery|folklore|fantasma|ghost|haunted|apparizione|maledetto|curse|spirito|spirit|occulto|esoterico";
-  
   return `
 [out:json][timeout:60];
 (
-  // Storico, Castelli, Rovine, Monumenti
-  nwr(around:${radiusMeters},${lat},${lng})["historic"~"castle|fort|manor|tower|ruins|archaeological_site|monument|memorial|tomb|monastery|convent|hospital|battlefield"];
+  // Storico, Castelli, Rovine, Monumenti (Nodi e Way separati per affidabilità)
+  node(around:${radiusMeters},${lat},${lng})["historic"~"castle|fort|manor|tower|ruins|archaeological_site|monument|memorial|tomb|monastery|convent|hospital|battlefield|prison"];
+  way(around:${radiusMeters},${lat},${lng})["historic"~"castle|fort|manor|tower|ruins|archaeological_site|monument|memorial|tomb|monastery|convent|hospital|battlefield|prison"];
   
-  // Edifici e Strutture Abbandonate/Dismesse
-  nwr(around:${radiusMeters},${lat},${lng})["building"~"ruins|collapsed|abandoned|disused"];
-  nwr(around:${radiusMeters},${lat},${lng})["abandoned"~"yes|abandoned|disused"];
-  nwr(around:${radiusMeters},${lat},${lng})["disused"~"yes|abandoned|disused"];
+  // Edifici Abbandonati/Dismessi
+  node(around:${radiusMeters},${lat},${lng})["building"~"ruins|collapsed|abandoned|disused"];
+  way(around:${radiusMeters},${lat},${lng})["building"~"ruins|collapsed|abandoned|disused"];
+  
+  node(around:${radiusMeters},${lat},${lng})["abandoned"~"yes|abandoned|disused"];
+  way(around:${radiusMeters},${lat},${lng})["abandoned"~"yes|abandoned|disused"];
 
   // Cimiteri e Luoghi Sacri
-  nwr(around:${radiusMeters},${lat},${lng})["amenity"~"grave_yard|hospital|psychiatric|church|monastery|convent"];
-  nwr(around:${radiusMeters},${lat},${lng})["landuse"="cemetery"];
+  node(around:${radiusMeters},${lat},${lng})["amenity"~"grave_yard|hospital|psychiatric|church|monastery|convent"];
+  way(around:${radiusMeters},${lat},${lng})["amenity"~"grave_yard|hospital|psychiatric|church|monastery|convent"];
+  node(around:${radiusMeters},${lat},${lng})["landuse"="cemetery"];
+  way(around:${radiusMeters},${lat},${lng})["landuse"="cemetery"];
 
-  // Ricerca testuale mirata (solo su nodi che hanno un nome)
-  nwr(around:${radiusMeters},${lat},${lng})["name"~"${keywords}",i];
+  // Ricerca testuale ottimizzata (solo nomi e note brevi)
+  node(around:${radiusMeters},${lat},${lng})["name"~"leggenda|legend|mistero|mystery|folklore|fantasma|ghost|haunted|apparizione|maledetto|curse|spirito|spirit|occulto|esoterico",i];
 );
 out body center;
 `;
@@ -62,6 +64,11 @@ function detectCategory(tags: Record<string, string>): string {
   // Manicomi e Ospedali (spesso taggati come hospital o social_facility + abandoned)
   if (a === 'hospital' || a === 'social_facility' || name.includes('manicomio') || name.includes('ospedale') || name.includes('asylum') || name.includes('psichiatr')) {
     if (tags.abandoned || b === 'abandoned' || h || tags.disused) return 'manicomio';
+  }
+
+  // Carceri
+  if (a === 'prison' || h === 'prison' || name.includes('carcere') || name.includes('prigione') || name.includes('penitenziario')) {
+    return 'carcere';
   }
 
   if (a === 'grave_yard' || land === 'cemetery' || h === 'tomb') return 'cimitero';

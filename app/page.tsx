@@ -98,7 +98,7 @@ export default function HomePage() {
         distanceKm: dist,
         isFamous: true,
       };
-    }).filter(p => p.distanceKm <= 250);
+    }).filter(p => p.distanceKm <= 100); // RIPRISTINATO RAGGIO RIGIDO A 100KM
 
     setLuoghi(famousLuoghi.sort((a,b) => a.distanceKm - b.distanceKm));
 
@@ -109,12 +109,12 @@ export default function HomePage() {
         getUserPlaces(lat, lng, 100),
       ]);
 
-      const osmData = osmRes.status === 'fulfilled' ? osmRes.value : { luoghi: [] };
+      const osmData = (osmRes.status === 'fulfilled' && !osmRes.value.error) ? osmRes.value : { luoghi: [] };
       const userPlacesData = userPlaces.status === 'fulfilled' ? userPlaces.value : [];
 
-      console.log(`📡 Async Scan complete: OSM(${osmData.luoghi?.length || 0}) User(${userPlacesData.length})`);
+      console.log(`📡 Async Scan results: OSM(${osmData?.luoghi?.length || 0}) User(${userPlacesData?.length || 0})`);
 
-      const osmLuoghi: Place[] = (osmData.luoghi || []).map((p: any) => ({
+      const osmLuoghi: Place[] = (osmData?.luoghi || []).map((p: any) => ({
         id: p.id,
         name: p.name,
         description: p.description || generateDescription(p),
@@ -149,14 +149,17 @@ export default function HomePage() {
       });
 
       const sortedOsm = osmLuoghi.sort((a, b) => a.distanceKm - b.distanceKm).slice(0, 80);
-      const total = [...userLuoghi, ...famousLuoghi, ...sortedOsm]
+      const totalCombined = [...userLuoghi, ...famousLuoghi, ...sortedOsm]
         .sort((a, b) => a.distanceKm - b.distanceKm);
 
-      setLuoghi(total);
+      console.log(`✨ Rendering total: ${totalCombined.length} places.`);
+      setLuoghi(totalCombined);
       setState('ready');
     } catch (err) {
-      console.error("Errore parziale caricamento:", err);
-      setState('ready'); // Almeno i famosi sono visibili
+      console.error("❌ Critical load error:", err);
+      // In caso di errore estremo, mostriamo almeno i famosi già calcolati
+      setLuoghi(famousLuoghi.sort((a,b) => a.distanceKm - b.distanceKm));
+      setState('ready');
     }
   }
 
@@ -237,9 +240,20 @@ export default function HomePage() {
               <p className="text-red-400 mb-4">{errorMsg}</p>
               <button
                 onClick={startLocating}
-                className="px-6 py-3 bg-purple-800 hover:bg-purple-700 text-white rounded-full font-bold transition-colors"
+                className="px-6 py-3 bg-purple-800 hover:bg-purple-700 text-white rounded-full font-bold transition-colors mb-3"
               >
                 🔄 Riprova
+              </button>
+              <button
+                onClick={() => {
+                  const demoLat = 43.7167; // Toscana/Centro Italia
+                  const demoLng = 10.6167;
+                  setUserPos({ lat: demoLat, lng: demoLng });
+                  loadLuoghi(demoLat, demoLng);
+                }}
+                className="text-xs text-purple-400 underline hover:text-purple-200 transition-colors"
+              >
+                Usa posizione predefinita per test (Toscana)
               </button>
             </div>
           )}
