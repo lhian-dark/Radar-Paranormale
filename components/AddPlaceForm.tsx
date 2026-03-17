@@ -71,7 +71,7 @@ export default function AddPlaceForm({ userLat, userLng, userId, userName, onSuc
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-end sm:items-center justify-center p-4">
       <div className="bg-[#0f0a1e] border border-purple-800/60 rounded-2xl p-6 w-full max-w-lg shadow-2xl shadow-purple-900/40">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-white">🎥 Aggiungi Luogo Misterioso</h2>
