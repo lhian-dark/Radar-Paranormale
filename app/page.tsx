@@ -127,36 +127,7 @@ export default function HomePage() {
           isDeep: true
         }));
 
-        // FUSIONE INTELLIGENTE E DE-DUPLICAZIONE
-        // Evitiamo di mostrare lo stesso castello 3 volte se è sia in OSM che in Wikidata
-        const merged: Place[] = [];
-        const allPotential = [...userLuoghi, ...deepLuoghi, ...osmLuoghi];
-
-        allPotential.forEach(p => {
-          const isDuplicate = merged.some(existing => {
-            // Se sono a meno di 100 metri l'uno dall'altro, probabilmente sono lo stesso posto
-            const dist = Math.sqrt((existing.lat - p.lat)**2 + (existing.lng - p.lng)**2) * 111;
-            const sameName = existing.name.toLowerCase().includes(p.name.toLowerCase()) || 
-                           p.name.toLowerCase().includes(existing.name.toLowerCase());
-            return dist < 0.1 || (dist < 0.4 && sameName);
-          });
-
-          if (!isDuplicate) {
-            merged.push(p);
-          } else {
-            // Se è un duplicato ma la nuova versione ha informazioni "Deep", aggiorniamo la descrizione
-            const idx = merged.findIndex(existing => {
-              const dist = Math.sqrt((existing.lat - p.lat)**2 + (existing.lng - p.lng)**2) * 111;
-              return dist < 0.1;
-            });
-            if (idx !== -1 && p.isDeep && !merged[idx].isDeep) {
-              merged[idx].description = `${p.description}\n\n${merged[idx].description}`;
-              merged[idx].isDeep = true;
-            }
-          }
-        });
-
-        const total = merged
+        const total = [...userLuoghi, ...deepLuoghi, ...osmLuoghi]
           .sort((a, b) => a.distanceKm - b.distanceKm)
           .slice(0, 100);
 
