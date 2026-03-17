@@ -11,19 +11,42 @@ export interface OsmPlace {
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
 
 function buildQuery(lat: number, lng: number, radiusMeters: number): string {
+  const keywords = "leggenda|legend|mistero|mystery|folklore|fantasma|ghost|haunted|apparizione";
+  
   return `
 [out:json][timeout:30];
 (
-  node(around:${radiusMeters},${lat},${lng})["historic"~"ruins|castle|fort|monastery|church|manor|archaeological_site|battlefield|tomb"];
-  way(around:${radiusMeters},${lat},${lng})["historic"~"ruins|castle|fort|monastery|church|manor|archaeological_site|battlefield|tomb"];
-  node(around:${radiusMeters},${lat},${lng})["amenity"~"grave_yard|church"];
-  way(around:${radiusMeters},${lat},${lng})["amenity"~"grave_yard|church"];
-  node(around:${radiusMeters},${lat},${lng})["landuse"="cemetery"];
-  way(around:${radiusMeters},${lat},${lng})["landuse"="cemetery"];
+  // Castelli, Fortezze, Manieri
+  node(around:${radiusMeters},${lat},${lng})["historic"~"castle|fort|manor"];
+  way(around:${radiusMeters},${lat},${lng})["historic"~"castle|fort|manor"];
+  
+  // Rovine e Ruderi
+  node(around:${radiusMeters},${lat},${lng})["historic"~"ruins|archaeological_site"];
+  way(around:${radiusMeters},${lat},${lng})["historic"~"ruins|archaeological_site"];
+  node(around:${radiusMeters},${lat},${lng})["building"="ruins"];
+  way(around:${radiusMeters},${lat},${lng})["building"="ruins"];
+
+  // Cimiteri Antichi
+  node(around:${radiusMeters},${lat},${lng})["amenity"="grave_yard"]["historic"];
+  way(around:${radiusMeters},${lat},${lng})["amenity"="grave_yard"]["historic"];
+  node(around:${radiusMeters},${lat},${lng})["landuse"="cemetery"]["historic"];
+  way(around:${radiusMeters},${lat},${lng})["landuse"="cemetery"]["historic"];
+
+  // Luoghi e Chiese Abbandonate
   node(around:${radiusMeters},${lat},${lng})["building"="abandoned"];
-  node(around:${radiusMeters},${lat},${lng})["abandoned"];
-  node(around:${radiusMeters},${lat},${lng})["disused"];
-  node(around:${radiusMeters},${lat},${lng})["tourism"="attraction"]["historic"];
+  way(around:${radiusMeters},${lat},${lng})["building"="abandoned"];
+  node(around:${radiusMeters},${lat},${lng})["abandoned"="yes"];
+  way(around:${radiusMeters},${lat},${lng})["abandoned"="yes"];
+  node(around:${radiusMeters},${lat},${lng})["amenity"="church"]["abandoned"];
+  way(around:${radiusMeters},${lat},${lng})["amenity"="church"]["abandoned"];
+  
+  // Ricerca per Leggende, Misteri e Folklore
+  node(around:${radiusMeters},${lat},${lng})["name"~"${keywords}",i];
+  node(around:${radiusMeters},${lat},${lng})["description"~"${keywords}",i];
+  node(around:${radiusMeters},${lat},${lng})["note"~"${keywords}",i];
+  way(around:${radiusMeters},${lat},${lng})["name"~"${keywords}",i];
+  way(around:${radiusMeters},${lat},${lng})["description"~"${keywords}",i];
+  way(around:${radiusMeters},${lat},${lng})["note"~"${keywords}",i];
 );
 out body center;
 `;
@@ -46,11 +69,16 @@ function detectCategory(tags: Record<string, string>): string {
   const b = tags.building || '';
   const a = tags.amenity || '';
   const land = tags.landuse || '';
+  
+  // Testo per folklore
+  const text = (tags.name + tags.description + tags.note).toLowerCase();
+  if (text.includes('leggenda') || text.includes('folklore') || text.includes('mistero')) return 'storico';
 
-  if (a === 'grave_yard' || land === 'cemetery') return 'cimitero';
+  if ((a === 'grave_yard' || land === 'cemetery') && tags.historic) return 'cimitero';
   if (h === 'castle' || h === 'fort') return 'castello';
-  if (h === 'ruins') return 'rovine';
+  if (h === 'ruins' || b === 'ruins') return 'rovine';
   if (h === 'monastery') return 'monastero';
+  if (a === 'church' && (tags.abandoned || b === 'abandoned')) return 'abbandonato'; 
   if (h === 'church' || a === 'church') return 'chiesa';
   if (h === 'manor') return 'villa';
   if (h === 'battlefield') return 'campo_battaglia';

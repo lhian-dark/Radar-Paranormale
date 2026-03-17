@@ -13,8 +13,8 @@ const templates: Record<string, string[]> = {
   ],
   rovine: [
     'Ciò che rimane di questo edificio nasconde una storia di abbandono e mistero. Tra le macerie dimorate storie di presenze che rifiutano di abbandonare il luogo.',
-    'Le rovine si ergono come un monito del tempo. Gli anziani del posto raccontano di aver visto bagliori tra le pietre durante le notti d\'autunno.',
-    'Questo sito abbandonato emana un\'energia difficile da ignorare. Ricercatori del paranormale vi hanno registrato anomalie elettromagnetiche inspiegabili.',
+    'I ruderi si ergono come un monito del tempo. Gli anziani del posto raccontano di aver visto bagliori tra le pietre durante le notti d\'autunno.',
+    'Questo sito in rovina emana un\'energia difficile da ignorare. Ricercatori del paranormale vi hanno registrato anomalie elettromagnetiche inspiegabili.',
   ],
   monastero: [
     'Questo antico monastero ha visto monaci, riti esoterici e segreti sepolti. Le sue camere vuote risuonano ancora di canti gregoriani nelle notti silenziose.',
@@ -47,14 +47,14 @@ const templates: Record<string, string[]> = {
     'Antiche civiltà hanno lasciato impronte indelebili in questo luogo. Alcuni ricercatori parlano di portali energetici ancestrali ancora attivi.',
   ],
   abbandonato: [
-    'Questo edificio abbandonato porta i segni di una storia interrotta di colpo. I muri scrostati celano un passato che qualcuno ha voluto dimenticare in fretta.',
-    'L\'abbandono repentino di questo luogo ha alimentato le più disparate teorie. Chi si è avvicinato di notte riporta esperienze difficili da razionalizzare.',
+    'Questo luogo abbandonato porta i segni di una storia interrotta di colpo. I muri scrostati celano un passato che qualcuno ha voluto dimenticare in fretta.',
+    'L\'abbandono repentino di questo edificio ha alimentato le più disparate teorie. Chi si è avvicinato di notte riporta esperienze difficili da razionalizzare.',
     'Finestre sbarrate e porte serrate non bastano a contenere l\'energia di ciò che questo posto ha vissuto. Le presenze si manifestano soprattutto all\'alba.',
   ],
   storico: [
-    'Questo luogo storico cela strati di storia spesso dimenticati. La sua presenza nel paesaggio racconta di eventi che hanno cambiato queste terre.',
-    'Nei secoli questo sito ha assistito a vicende straordinarie, alcune celebrate altre dimenticate volutamente. Un\'aura di mistero lo avvolge ancora.',
-    'La tradizione locale attribuisce a questo luogo proprietà particolari. Gli anziani lo descrivono come un punto dove il velo tra i mondi è sottile.',
+    'Questo punto di interesse nasconde leggende e tradizioni secolari. Il folklore locale lo indica come un luogo dove il velo tra i mondi è insolitamente sottile.',
+    'Nei secoli questo sito ha assistito a vicende straordinarie che la tradizione orale ha tramandato fino a noi. Un\'aura di mistero lo circonda.',
+    'La storia ufficiale tace su ciò che è avvenuto qui, ma le leggende locali parlano chiaro: è un punto di forte carica energetica.',
   ],
 };
 
@@ -65,17 +65,29 @@ function pickTemplate(category: string, id: number): string {
 
 function enrichFromTags(base: string, tags: Record<string, string>): string {
   const extras: string[] = [];
-  if (tags.start_date) extras.push(`Risale al ${tags.start_date}.`);
-  if (tags.wikipedia) extras.push(`Documentato su Wikipedia.`);
-  if (tags.description) extras.push(tags.description.substring(0, 100));
-  if (tags.inscription) extras.push(`Iscrizione: "${tags.inscription.substring(0, 80)}".`);
+  
+  // Se c'è una descrizione reale, diamole priorità o usiamola come incipit
+  if (tags.description) extras.push(`Nota storica: ${tags.description.substring(0, 150)}...`);
+  if (tags.note) extras.push(`Dettaglio: ${tags.note.substring(0, 120)}...`);
+  
+  if (tags.start_date) extras.push(`Origini: ${tags.start_date}.`);
+  if (tags.wikipedia) extras.push(`Documentato negli archivi storici.`);
+  if (tags.inscription) extras.push(`Reca l'iscrizione: "${tags.inscription.substring(0, 60)}".`);
 
-  const result = extras.length > 0 ? `${base} ${extras.join(' ')}` : base;
-  return result.substring(0, 400);
+  const result = extras.length > 0 ? `${base} \n\n${extras.join(' ')}` : base;
+  return result.substring(0, 500);
 }
 
 export function generateDescription(place: OsmPlace): string {
-  const base = pickTemplate(place.category, place.id);
+  // Se il nome o i tag contengono parole chiave specifiche, usiamo il template storico/mistero
+  const text = (place.name + (place.tags.description || '') + (place.tags.note || '')).toLowerCase();
+  
+  let category = place.category;
+  if (text.includes('leggenda') || text.includes('folklore') || text.includes('mistero')) {
+    category = 'storico'; 
+  }
+
+  const base = pickTemplate(category, place.id);
   return enrichFromTags(base, place.tags);
 }
 
@@ -98,17 +110,17 @@ export function getCategoryEmoji(category: string): string {
 
 export function getCategoryLabel(category: string): string {
   const map: Record<string, string> = {
-    cimitero: 'Cimitero',
-    castello: 'Castello',
-    rovine: 'Rovine',
+    cimitero: 'Cimitero Antico',
+    castello: 'Castello/Fortezza',
+    rovine: 'Rovine/Ruderi',
     monastero: 'Monastero',
     chiesa: 'Chiesa Antica',
-    villa: 'Villa',
+    villa: 'Villa Storica',
     campo_battaglia: 'Campo di Battaglia',
     tomba: 'Tomba Antica',
     sito_archeologico: 'Sito Archeologico',
-    abbandonato: 'Edificio Abbandonato',
-    storico: 'Sito Storico',
+    abbandonato: 'Luogo Abbandonato',
+    storico: 'Leggenda/Folklore',
   };
-  return map[category] || 'Luogo Misterioso';
+  return map[category] || 'Punto di Interesse';
 }
