@@ -23,7 +23,6 @@ export async function fetchDeepMisteri(lat: number, lng: number, radiusKm: numbe
       ?item (wdt:P31/wdt:P279*|wdt:P361/wdt:P279*) ?type .
       VALUES ?type { 
         wd:Q5192900 wd:Q350824 wd:Q43229 wd:Q34344 wd:Q816823 wd:Q108163 wd:Q125191 
-        wd:Q49833 wd:Q1028181 wd:Q178615
       }
       SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". }
     } ORDER BY ?distance LIMIT 20
