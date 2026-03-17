@@ -19,7 +19,6 @@ interface Place {
   distanceKm: number;
   isUserPlace?: boolean;
   userName?: string;
-  isDeep?: boolean;
 }
 
 type AppState = 'idle' | 'locating' | 'loading' | 'ready' | 'error';
@@ -77,11 +76,8 @@ export default function HomePage() {
     Promise.all([
       fetch(`/api/luoghi?lat=${lat}&lng=${lng}&raggio=100`).then((r) => r.json()),
       getUserPlaces(lat, lng, 100),
-      import('@/lib/wikidata').then(m => m.fetchDeepMisteri(lat, lng, 50)),
     ])
-      .then(([osmData, userPlaces, deepMisteri]) => {
-        console.log(`📊 Data Scan: OSM(${osmData?.luoghi?.length || 0}) User(${userPlaces?.length || 0}) Deep(${deepMisteri?.length || 0})`);
-        
+      .then(([osmData, userPlaces]) => {
         const osmLuoghi: Place[] = ((osmData && osmData.luoghi) || []).map((p: any) => ({
           id: p.id,
           name: p.name,
@@ -116,18 +112,7 @@ export default function HomePage() {
           };
         });
 
-        const deepLuoghi: Place[] = (deepMisteri || []).map((p: any) => ({
-          id: `deep-${p.id}`,
-          name: `🗝️ ${p.name}`,
-          description: `RILIEVO PROFONDO: ${p.description}`,
-          category: 'storico',
-          lat: p.lat,
-          lng: p.lng,
-          distanceKm: p.distanceKm,
-          isDeep: true
-        }));
-
-        const total = [...userLuoghi, ...deepLuoghi, ...osmLuoghi]
+        const total = [...userLuoghi, ...osmLuoghi]
           .sort((a, b) => a.distanceKm - b.distanceKm)
           .slice(0, 100);
 

@@ -64,12 +64,16 @@ export default function LuoghiList({ luoghi, selectedId, onSelect, loading }: Pr
                 <span className="text-xl shrink-0">{getCategoryEmoji(p.category)}</span>
                 <div className="min-w-0">
                   <h3 className="font-bold text-white truncate text-sm leading-tight">{p.name}</h3>
-                  <span className="text-xs text-purple-400">{getCategoryLabel(p.category)}</span>
-                  {p.isUserPlace && (
-                    <span className="ml-2 text-xs bg-amber-900/50 text-amber-400 px-2 py-0.5 rounded-full border border-amber-700/50">
-                      👤 {p.userName || 'Utente'}
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    <span className="text-xs text-purple-400">
+                      {getCategoryLabel(p.category)}
                     </span>
-                  )}
+                    {p.isUserPlace && (
+                      <span className="text-[10px] bg-amber-900/50 text-amber-400 px-2 py-0.5 rounded-full border border-amber-700/50">
+                        👤 {p.userName || 'Utente'}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="shrink-0 text-right">
