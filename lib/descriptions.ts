@@ -56,6 +56,16 @@ const templates: Record<string, string[]> = {
     'Nei secoli questo sito ha assistito a vicende straordinarie che la tradizione orale ha tramandato fino a noi. Un\'aura di mistero lo circonda.',
     'La storia ufficiale tace su ciò che è avvenuto qui, ma le leggende locali parlano chiaro: è un punto di forte carica energetica.',
   ],
+  manicomio: [
+    'Le mura di questo ex ospedale psichiatrico sembrano ancora risuonare delle sofferenze del passato. L\'aria è densa di un\'energia pesante e opprimente.',
+    'Un tempo luogo di cura e isolamento, questa struttura abbandonata è oggi meta di ricercatori del paranormale. Numerose le segnalazioni di urla e lamenti.',
+    'Tra i corridoi deserti di questo manicomio storico, la sensazione di essere osservati è costante. I pavimenti scricchiolano sotto passi invisibili.',
+  ],
+  carcere: [
+    'Questa antica prigione ha ospitato condannati e disperati. Le celle anguste conservano tracce di una disperazione che il tempo non ha cancellato.',
+    'Le catene sono sparite, ma il peso del passato è ancora palpabile in questo edificio. Si dice che le anime dei prigionieri non abbiano mai lasciato queste mura.',
+    'Un luogo di punizione e oscurità. Visitatori notturni riferiscono di aver sentito il rumore di sbarre che si chiudono e sussurri dalle feritoie.',
+  ],
 };
 
 function pickTemplate(category: string, id: number): string {
@@ -104,6 +114,8 @@ export function getCategoryEmoji(category: string): string {
     sito_archeologico: '🗿',
     abbandonato: '👻',
     storico: '🔮',
+    manicomio: '🏥',
+    carcere: '⛓️',
   };
   return map[category] || '👁️';
 }
@@ -121,6 +133,8 @@ export function getCategoryLabel(category: string): string {
     sito_archeologico: 'Sito Archeologico',
     abbandonato: 'Luogo Abbandonato',
     storico: 'Leggenda/Folklore',
+    manicomio: 'Ex Manicomio/Ospedale',
+    carcere: 'Prigione Storica',
   };
   return map[category] || 'Punto di Interesse';
 }

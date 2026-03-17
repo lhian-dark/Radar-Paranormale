@@ -74,16 +74,16 @@ export const MISTERI_FAMOSI: FamousMystery[] = [
   },
   {
     id: "f-9",
-    name: "Casa delle Anime",
-    description: "Voltri (GE). Locanda dove osti uccidevano ospiti nel '700; spiriti urlanti e presenze riportate.",
+    name: "Ca' de Anime - Casa delle Anime",
+    description: "Voltri, Genova (GE). Antica locanda medievale dove osti uccidevano ospiti; urla, porte che si aprono e spiriti di vittime durante WWII.",
     lat: 44.4275,
     lng: 8.7809,
     category: "abbandonato"
   },
   {
     id: "f-10",
-    name: "Maniero della Rotta",
-    description: "Moncalieri (TO). Castello templare con apparizioni di nobili, preti e cardinali; tra i più infestati d'Italia.",
+    name: "Castello della Rotta",
+    description: "Moncalieri (TO). Maniero XII sec. tra i più infestati d'Italia; apparizioni di templari, nobili, preti e cardinali; rumori, urla e ombre dal Medioevo.",
     lat: 44.9865,
     lng: 7.7017,
     category: "castello"
@@ -98,8 +98,8 @@ export const MISTERI_FAMOSI: FamousMystery[] = [
   },
   {
     id: "f-12",
-    name: "Triora - Villaggio delle streghe",
-    description: "Triora (IM). 'Salem italiana': oltre 300 donne processate e uccise per stregoneria nel '500; case con simboli occulti.",
+    name: "Triora - Borgo delle Streghe",
+    description: "Triora (IM). 'Salem ligure': processi per stregoneria 1587-1589 con torture e morti; Cabotina luogo dei sabba, rumori e presenze stregate.",
     lat: 43.9175,
     lng: 7.7532,
     category: "storico"
@@ -107,7 +107,7 @@ export const MISTERI_FAMOSI: FamousMystery[] = [
   {
     id: "f-13",
     name: "Rosazza - Borgo massonico",
-    description: "Rosazza (BI). Borgo con simboli esoterici e Casa del Diavolo; riti pagani e misteri massonici.",
+    description: "Rosazza (BI). Villaggio XIX sec. del senatore Federico Rosazza con simboli esoterici, massonici e pagani su edifici, fontane e pietre; energia occulta.",
     lat: 45.6279,
     lng: 8.1603,
     category: "storico"
@@ -122,8 +122,8 @@ export const MISTERI_FAMOSI: FamousMystery[] = [
   },
   {
     id: "f-15",
-    name: "Castello di Fosdinovo",
-    description: "Fosdinovo (MS). Fantasma di Bianca Malaspina, donna bionda impiccata; rumori e presenze nel '400.",
+    name: "Castello Malaspina di Fosdinovo",
+    description: "Fosdinovo (MS). Fantasma di Bianca Maria Aloisia Malaspina, murata viva nel 1620 dal padre con cane e cinghiale per amore con uno stalliere; appare nelle notti di luna piena.",
     lat: 44.1547,
     lng: 10.0249,
     category: "castello"
@@ -167,5 +167,205 @@ export const MISTERI_FAMOSI: FamousMystery[] = [
     lat: 45.7722,
     lng: 13.5792,
     category: "castello"
+  },
+  {
+    id: "f-21",
+    name: "Castello di Vincigliata",
+    description: "Fiesole (FI). Sposa fantasma Bianca degli Usimbardi, morta di dolore nel XIII sec. dopo l'uccisione dell'amato Uberto; vaga in lacrime proteggendo amori impossibili.",
+    lat: 43.8000,
+    lng: 11.1333,
+    category: "castello"
+  },
+  {
+    id: "f-22",
+    name: "Castello di Brolio",
+    description: "Gaiole in Chianti (SI). Spettro del Barone di Ferro Bettino Ricasoli (1809-1880), visto a cavallo tra i vigneti con cani; fenomeni durante il funerale.",
+    lat: 43.2667,
+    lng: 11.3167,
+    category: "castello"
+  },
+  {
+    id: "f-23",
+    name: "Castello dei Conti Guidi",
+    description: "Poppi (AR). Fantasma di contessa Matelda, murata viva nella Torre del Diavolo per aver sedotto e ucciso amanti; appare alle finestre silenziose.",
+    lat: 43.7167,
+    lng: 11.7667,
+    category: "castello"
+  },
+  {
+    id: "f-24",
+    name: "Castello dei Vicari",
+    description: "Lari (PI). Fantasma di Giovanni Princi 'il Rosso', prigioniero morto nel 1922; passi, catene e ombra rossa tra 15-16 dicembre nelle segrete.",
+    lat: 43.5667,
+    lng: 10.6167,
+    category: "castello"
+  },
+  {
+    id: "f-25",
+    name: "Fonte di Fata Morgana - Villa del Riposo",
+    description: "Bagno a Ripoli (FI). Ninfe e fate bianche appaiono danzando presso la fonte del 1500; alchimista Von Leben le vide nel 1572 offrendogli acqua ringiovanente.",
+    lat: 43.7333,
+    lng: 11.3167,
+    category: "storico"
+  },
+  {
+    id: "f-26",
+    name: "Ponte della Pia",
+    description: "Sovicille (SI), presso Rosia. Ombra di Pia de' Tolomei, uccisa dal marito nel XIII sec.; citata da Dante nel Purgatorio per gelosia o tradimento.",
+    lat: 43.2167,
+    lng: 11.1500,
+    category: "storico"
+  },
+  {
+    id: "f-27",
+    name: "Villa del Cotone",
+    description: "Empoli (FI), Figline Valdarno area. Fantasma di bambina Emma, bruciata nel 1600 davanti alla cappella; appare ripetutamente dal '600.",
+    lat: 43.7167,
+    lng: 11.0000,
+    category: "villa"
+  },
+  {
+    id: "f-28",
+    name: "Castello di Sorci",
+    description: "Sorci (AR), Anghiari area. Fantasma di condottiero Baldaccio Bruni (1390-1441); rumori notturni e presenze spettrali nella residenza medievale.",
+    lat: 43.5667,
+    lng: 11.9833,
+    category: "castello"
+  },
+  {
+    id: "f-29",
+    name: "Tempio di Minerva Medica",
+    description: "Montefoscoli (PI), Valdera. Tempio massonico del XIX sec. con presunte anime in pena; visite luna piena rivelano presenze occulte nel bosco.",
+    lat: 43.7000,
+    lng: 10.6667,
+    category: "storico"
+  },
+  {
+    id: "f-30",
+    name: "Castello della Lucertola",
+    description: "Apricale (IM). Fantasma di contessa Cristina Anna Bellomo (1861-1904), uccisa dal marito-suicida; apparizioni nel castello del X sec.",
+    lat: 43.8386,
+    lng: 7.7533,
+    category: "castello"
+  },
+  {
+    id: "f-31",
+    name: "Valle Christi",
+    description: "Rapallo (GE). Abbazia cistercense XII sec.; suora murata viva con figlia per amore di pastore, lamenti nelle notti senza luna.",
+    lat: 44.3667,
+    lng: 9.2333,
+    category: "abbandonato"
+  },
+  {
+    id: "f-32",
+    name: "Buranco - Porta dell'Inferno",
+    description: "Bardineto (SV). Voragini del torrente Varatella simili all'Inferno dantesco; figure cornute avvistate.",
+    lat: 44.1167,
+    lng: 8.1333,
+    category: "storico"
+  },
+  {
+    id: "f-33",
+    name: "Ex Colonia Devoto",
+    description: "Monte Zatta (SP). Colonia 1930 per orfani, chiusa negli anni '60; fantasmi di bambini nei corridoi abbandonati.",
+    lat: 44.3667,
+    lng: 9.6167,
+    category: "abbandonato"
+  },
+  {
+    id: "f-34",
+    name: "Volto di Borzone",
+    description: "Borzonasca (GE). Volto scolpito nella roccia da monaci medievali; origine ignota, volto di Cristo tra alberi misteriosi.",
+    lat: 44.4000,
+    lng: 9.3833,
+    category: "sito_archeologico"
+  },
+  {
+    id: "f-35",
+    name: "Passo delle Cento Croci",
+    description: "Varese Ligure (SP). Briganti travestiti da frati uccisero 100 vittime; lamenti e fantasmi in notti di tempesta.",
+    lat: 44.4667,
+    lng: 9.6833,
+    category: "storico"
+  },
+  {
+    id: "f-36",
+    name: "Menhir Farfalla di Luce",
+    description: "Monte Caprione (SP). Megaliti preistorici; fascio luminoso a forma di farfalla al solstizio d'estate.",
+    lat: 44.0667,
+    lng: 10.0000,
+    category: "sito_archeologico"
+  },
+  {
+    id: "f-37",
+    name: "Cimitero della Strega Senza Testa",
+    description: "Campo Ligure (GE). Strega decapitata sepolta a faccia in giù; appare di notte esercitando malefici.",
+    lat: 44.5000,
+    lng: 8.8000,
+    category: "cimitero"
+  },
+  {
+    id: "f-38",
+    name: "Grotte Alchemiche di Torino",
+    description: "Torino (TO). Tre tunnel sotterranei segreti (Palazzo Reale, Gran Madre, Piazza Statuto); portali interdimensionali per alchimisti, pietra filosofale nascosta.",
+    lat: 45.0703,
+    lng: 7.6869,
+    category: "storico"
+  },
+  {
+    id: "f-39",
+    name: "Sacra di San Michele",
+    description: "Sant'Ambrogio di Torino (TO). Abbazia X sec. su Monte Pirchiriano; fantasmi monaci, rumori e ispirazione per 'Il Nome della Rosa'; energia mistica.",
+    lat: 45.0997,
+    lng: 7.3389,
+    category: "monastero"
+  },
+  {
+    id: "f-40",
+    name: "Castello di Malgrà",
+    description: "Crescentino (VC). XIV sec., fantasmi di spiriti inquieti da secoli; abbandonato, riti satanici e presenze riportate.",
+    lat: 45.1167,
+    lng: 8.2833,
+    category: "castello"
+  },
+  {
+    id: "f-41",
+    name: "Ponte del Diavolo",
+    description: "Lanzo Torinese (TO). Ponte medievale costruito dal Diavolo in una notte; maledizione su chi passa di notte, urla e ombre demoniache.",
+    lat: 45.2786,
+    lng: 7.4747,
+    category: "storico"
+  },
+  {
+    id: "f-42",
+    name: "Chiesa di Santa Maria d'Isana",
+    description: "Roccaverano (AT). Chiesetta romanica con misteri occulti; presenze e fenomeni legati a culti antichi pre-cristiani.",
+    lat: 44.7333,
+    lng: 8.1167,
+    category: "chiesa"
+  },
+  {
+    id: "f-43",
+    name: "Castello di Cannero",
+    description: "Cannero Riviera (VB). Rovine XIV sec. dei fratelli Mazzaforte pirati; fantasmi di briganti sul Lago Maggiore, urla notturne.",
+    lat: 45.9833,
+    lng: 8.7833,
+    category: "rovine"
+  },
+  {
+    id: "f-44",
+    name: "Castello della Manta",
+    description: "Manta (CN). Tre spettri nelle sale affrescate XIV sec.; nobili erranti, FAI-owned con avvistamenti persistenti.",
+    lat: 44.7667,
+    lng: 7.4333,
+    category: "castello"
+  },
+  {
+    id: "f-45",
+    name: "Villa del Roccolo",
+    description: "Busca (CN). Neogotico 1831, fantasma di figlia marchesi Tapparelli; spirito buono attende marito, appare di notte.",
+    lat: 44.5000,
+    lng: 7.4833,
+    category: "villa"
   }
 ];
