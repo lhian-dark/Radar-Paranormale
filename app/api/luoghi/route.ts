@@ -13,16 +13,19 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const startTime = Date.now();
     console.log(`📡 API Radar: Ricerca a lat=${lat}, lng=${lng}, raggio=${raggio}km`);
     const places = await fetchParanormalPlaces(lat, lng, raggio);
-    console.log(`✅ API Radar: Trovati ${places.length} luoghi.`);
+    const duration = Date.now() - startTime;
+    console.log(`✅ API Radar: Trovati ${places.length} luoghi in ${duration}ms.`);
+    
     const enriched = places.map((p) => ({
       ...p,
       description: generateDescription(p),
     }));
     return NextResponse.json({ luoghi: enriched });
   } catch (err: any) {
-    console.error('❌ API Radar Error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error('❌ API Radar Error:', err.message);
+    return NextResponse.json({ error: err.message, luoghi: [] }, { status: 500 });
   }
 }

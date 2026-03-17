@@ -8,34 +8,15 @@ export interface OsmPlace {
   distanceKm: number;
 }
 
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+const OVERPASS_MIRRORS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://lz4.overpass-api.de/api/interpreter',
+  'https://z.overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter'
+];
 
 function buildQuery(lat: number, lng: number, radiusMeters: number): string {
-  return `
-[out:json][timeout:60];
-(
-  // Storico, Castelli, Rovine, Monumenti (Nodi e Way separati per affidabilità)
-  node(around:${radiusMeters},${lat},${lng})["historic"~"castle|fort|manor|tower|ruins|archaeological_site|monument|memorial|tomb|monastery|convent|hospital|battlefield|prison"];
-  way(around:${radiusMeters},${lat},${lng})["historic"~"castle|fort|manor|tower|ruins|archaeological_site|monument|memorial|tomb|monastery|convent|hospital|battlefield|prison"];
-  
-  // Edifici Abbandonati/Dismessi
-  node(around:${radiusMeters},${lat},${lng})["building"~"ruins|collapsed|abandoned|disused"];
-  way(around:${radiusMeters},${lat},${lng})["building"~"ruins|collapsed|abandoned|disused"];
-  
-  node(around:${radiusMeters},${lat},${lng})["abandoned"~"yes|abandoned|disused"];
-  way(around:${radiusMeters},${lat},${lng})["abandoned"~"yes|abandoned|disused"];
-
-  // Cimiteri e Luoghi Sacri
-  node(around:${radiusMeters},${lat},${lng})["amenity"~"grave_yard|hospital|psychiatric|church|monastery|convent"];
-  way(around:${radiusMeters},${lat},${lng})["amenity"~"grave_yard|hospital|psychiatric|church|monastery|convent"];
-  node(around:${radiusMeters},${lat},${lng})["landuse"="cemetery"];
-  way(around:${radiusMeters},${lat},${lng})["landuse"="cemetery"];
-
-  // Ricerca testuale ottimizzata (solo nomi e note brevi)
-  node(around:${radiusMeters},${lat},${lng})["name"~"leggenda|legend|mistero|mystery|folklore|fantasma|ghost|haunted|apparizione|maledetto|curse|spirito|spirit|occulto|esoterico",i];
-);
-out body center;
-`;
+  return `[out:json][timeout:30];(node(around:${radiusMeters},${lat},${lng})["historic"];way(around:${radiusMeters},${lat},${lng})["historic"];node(around:${radiusMeters},${lat},${lng})["building"~"ruins|abandoned"];way(around:${radiusMeters},${lat},${lng})["building"~"ruins|abandoned"];node(around:${radiusMeters},${lat},${lng})["abandoned"="yes"];way(around:${radiusMeters},${lat},${lng})["abandoned"="yes"];);out body center;`;
 }
 
 function calcDistanceKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -95,48 +76,58 @@ export async function fetchParanormalPlaces(
 ): Promise<OsmPlace[]> {
   const radiusMeters = radiusKm * 1000;
   const query = buildQuery(lat, lng, radiusMeters);
+  let lastError = null;
 
-  console.log(`📡 Overpass Query Start: lat=${lat}, lng=${lng}`);
-  const res = await fetch(OVERPASS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `data=${encodeURIComponent(query)}`,
-    cache: 'no-store', // Disable cache for debugging
-  });
+  for (const mirror of OVERPASS_MIRRORS) {
+    try {
+      console.log(`📡 Trying Overpass mirror: ${mirror}`);
+      const res = await fetch(mirror, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `data=${encodeURIComponent(query)}`,
+        signal: AbortSignal.timeout(15000), 
+      });
 
-  if (!res.ok) {
-    const errorText = await res.text();
-    console.error(`❌ Overpass API error: ${res.status}`, errorText);
-    throw new Error(`Overpass API error: ${res.status}`);
+      if (!res.ok) {
+        console.warn(`⚠️ ${mirror} status: ${res.status}`);
+        lastError = new Error(`Overpass error: ${res.status}`);
+        continue;
+      }
+
+      const data = await res.json();
+      const rawElements = data.elements || [];
+      console.log(`✅ ${mirror} returned ${rawElements.length} elements.`);
+      
+      const places: OsmPlace[] = rawElements
+        .filter((el: any) => {
+          const elLat = el.lat ?? el.center?.lat;
+          const elLng = el.lon ?? el.center?.lon;
+          const name = getName(el.tags || {});
+          return elLat && elLng && name;
+        })
+        .map((el: any) => {
+          const elLat = el.lat ?? el.center?.lat;
+          const elLng = el.lon ?? el.center?.lon;
+          return {
+            id: el.id,
+            lat: elLat,
+            lng: elLng,
+            tags: el.tags || {},
+            name: getName(el.tags),
+            category: detectCategory(el.tags),
+            distanceKm: Math.round(calcDistanceKm(lat, lng, elLat, elLng) * 10) / 10,
+          } as OsmPlace;
+        })
+        .filter((p: OsmPlace) => p.distanceKm <= radiusKm)
+        .sort((a: OsmPlace, b: OsmPlace) => a.distanceKm - b.distanceKm);
+
+      return places;
+    } catch (err: any) {
+      console.error(`❌ Mirror ${mirror} failed:`, err.message);
+      lastError = err;
+    }
   }
 
-  const data = await res.json();
-  const rawElements = data.elements || [];
-  console.log(`✅ Overpass returned ${rawElements.length} elements.`);
-
-  const places: OsmPlace[] = rawElements
-    .filter((el: any) => {
-      const elLat = el.lat ?? el.center?.lat;
-      const elLng = el.lon ?? el.center?.lon;
-      const name = getName(el.tags || {});
-      return elLat && elLng && name;
-    })
-    .map((el: any) => {
-      const elLat = el.lat ?? el.center?.lat;
-      const elLng = el.lon ?? el.center?.lon;
-      return {
-        id: el.id,
-        lat: elLat,
-        lng: elLng,
-        tags: el.tags || {},
-        name: getName(el.tags),
-        category: detectCategory(el.tags),
-        distanceKm: Math.round(calcDistanceKm(lat, lng, elLat, elLng) * 10) / 10,
-      } as OsmPlace;
-    })
-    .filter((p: OsmPlace) => p.distanceKm <= radiusKm)
-    .sort((a: OsmPlace, b: OsmPlace) => a.distanceKm - b.distanceKm);
-
-  console.log(`🔮 Final filtered places: ${places.length}`);
-  return places;
+  console.error("❌ All Overpass mirrors failed.");
+  throw lastError || new Error("All mirrors failed.");
 }

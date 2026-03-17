@@ -156,7 +156,7 @@ export default function HomePage() {
       setLuoghi(totalCombined);
       setState('ready');
     } catch (err) {
-      console.error("❌ Critical load error:", err);
+      console.error("❌ Critical load error in page.tsx:", err);
       // In caso di errore estremo, mostriamo almeno i famosi già calcolati
       setLuoghi(famousLuoghi.sort((a,b) => a.distanceKm - b.distanceKm));
       setState('ready');
