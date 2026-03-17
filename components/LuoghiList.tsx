@@ -12,8 +12,6 @@ interface Place {
   lng: number;
   isUserPlace?: boolean;
   userName?: string;
-  isWiki?: boolean;
-  wikiUrl?: string;
 }
 
 interface Props {
@@ -63,12 +61,10 @@ export default function LuoghiList({ luoghi, selectedId, onSelect, loading }: Pr
           >
             <div className="flex items-start justify-between gap-3 mb-2">
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <span className="text-xl shrink-0">{p.isWiki ? '📖' : getCategoryEmoji(p.category)}</span>
+                <span className="text-xl shrink-0">{getCategoryEmoji(p.category)}</span>
                 <div className="min-w-0">
                   <h3 className="font-bold text-white truncate text-sm leading-tight">{p.name}</h3>
-                  <span className="text-xs text-purple-400">
-                    {p.isWiki ? 'Wikipedia' : getCategoryLabel(p.category)}
-                  </span>
+                  <span className="text-xs text-purple-400">{getCategoryLabel(p.category)}</span>
                   {p.isUserPlace && (
                     <span className="ml-2 text-xs bg-amber-900/50 text-amber-400 px-2 py-0.5 rounded-full border border-amber-700/50">
                       👤 {p.userName || 'Utente'}
@@ -85,38 +81,25 @@ export default function LuoghiList({ luoghi, selectedId, onSelect, loading }: Pr
               {p.description}
             </p>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-2">
               <a
                 href={`https://www.google.com/maps?q=${p.lat},${p.lng}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1.5 text-[10px] bg-purple-800/30 hover:bg-purple-700/50 text-purple-200 px-3 py-1.5 rounded-lg border border-purple-700/30 transition-colors uppercase font-bold"
+                className="flex-1 text-center py-2 bg-purple-900/40 hover:bg-purple-900/60 text-purple-200 text-xs font-bold rounded-lg border border-purple-700/30 transition-all"
               >
                 🗺️ Maps
               </a>
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  (window as any).openInvestigation?.(p.name);
-                }}
-                className="inline-flex items-center gap-1.5 text-[10px] bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg shadow-lg shadow-blue-900/40 transition-all font-bold uppercase"
+              <a
+                href={`https://www.google.com/search?q=${encodeURIComponent(p.name + ' leggende misteri')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="flex-1 text-center py-2 bg-blue-900/40 hover:bg-blue-900/60 text-blue-200 text-xs font-bold rounded-lg border border-blue-700/30 transition-all"
               >
-                🔎 Indagine
-              </button>
-
-              {p.wikiUrl && (
-                <a
-                  href={p.wikiUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="inline-flex items-center gap-1.5 text-[10px] bg-gray-800/50 hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg border border-white/10 transition-colors uppercase font-bold"
-                >
-                  📖 Wiki
-                </a>
-              )}
+                🔎 Cerca Misteri
+              </a>
             </div>
           </button>
         );

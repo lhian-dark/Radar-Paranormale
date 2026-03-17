@@ -8,7 +8,6 @@ import { loginGoogle, getSession, logout, getUserPlaces } from '@/lib/appwrite';
 import { generateDescription } from '@/lib/descriptions';
 
 const RadarMap = dynamic(() => import('@/components/RadarMap'), { ssr: false });
-const InvestigationPanel = dynamic(() => import('@/components/InvestigationPanel'), { ssr: false });
 
 interface Place {
   id: number | string;
@@ -20,8 +19,6 @@ interface Place {
   distanceKm: number;
   isUserPlace?: boolean;
   userName?: string;
-  isWiki?: boolean;
-  wikiUrl?: string;
 }
 
 type AppState = 'idle' | 'locating' | 'loading' | 'ready' | 'error';
@@ -34,14 +31,7 @@ export default function HomePage() {
   const [selectedId, setSelectedId] = useState<number | string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [investigatingName, setInvestigatingName] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
-
-  // Expose investigation trigger to child components via window
-  useEffect(() => {
-    (window as any).openInvestigation = (name: string) => setInvestigatingName(name);
-    return () => { delete (window as any).openInvestigation; };
-  }, []);
 
   // Auth check
   useEffect(() => {
@@ -86,9 +76,8 @@ export default function HomePage() {
     Promise.all([
       fetch(`/api/luoghi?lat=${lat}&lng=${lng}&raggio=100`).then((r) => r.json()),
       getUserPlaces(lat, lng, 100),
-      import('@/lib/wikipedia').then(m => m.fetchNearbyWiki(lat, lng, 10000)),
     ])
-      .then(([osmData, userPlaces, wikiPages]) => {
+      .then(([osmData, userPlaces]) => {
         const osmLuoghi: Place[] = ((osmData && osmData.luoghi) || []).map((p: any) => ({
           id: p.id,
           name: p.name,
@@ -123,19 +112,7 @@ export default function HomePage() {
           };
         });
 
-        const wikiLuoghi: Place[] = (wikiPages || []).map((p: any) => ({
-          id: `wiki-${p.pageid}`,
-          name: `📖 ${p.title}`,
-          description: p.extract || 'Articolo storico su Wikipedia.',
-          category: 'storico',
-          lat: p.lat,
-          lng: p.lon,
-          distanceKm: Math.round((p.dist / 1000) * 10) / 10,
-          isWiki: true,
-          wikiUrl: p.fullurl
-        }));
-
-        const total = [...userLuoghi, ...wikiLuoghi, ...osmLuoghi]
+        const total = [...userLuoghi, ...osmLuoghi]
           .sort((a, b) => a.distanceKm - b.distanceKm)
           .slice(0, 100);
 
@@ -305,14 +282,6 @@ export default function HomePage() {
           userName={user.name || 'Anonimo'}
           onSuccess={handleAddSuccess}
           onClose={() => setShowAddForm(false)}
-        />
-      )}
-
-      {/* Investigation Modal */}
-      {investigatingName && (
-        <InvestigationPanel 
-          placeName={investigatingName} 
-          onClose={() => setInvestigatingName(null)} 
         />
       )}
     </div>

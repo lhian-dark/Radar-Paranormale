@@ -11,9 +11,6 @@ export interface OsmPlace {
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
 
 function buildQuery(lat: number, lng: number, radiusMeters: number): string {
-  // Cerchiamo sia per tipologia che per parole chiave specifiche nel nome o descrizione
-  const keywords = "fantasma|ghost|haunted|mistero|mystery|leggenda|legend|spirito|spirit|macabro|paranormale";
-  
   return `
 [out:json][timeout:30];
 (
@@ -25,14 +22,8 @@ function buildQuery(lat: number, lng: number, radiusMeters: number): string {
   way(around:${radiusMeters},${lat},${lng})["landuse"="cemetery"];
   node(around:${radiusMeters},${lat},${lng})["building"="abandoned"];
   node(around:${radiusMeters},${lat},${lng})["abandoned"];
-  
-  // Ricerca testuale specifica per il "Paranormale"
-  node(around:${radiusMeters},${lat},${lng})["description"~"${keywords}",i];
-  node(around:${radiusMeters},${lat},${lng})["note"~"${keywords}",i];
-  node(around:${radiusMeters},${lat},${lng})["name"~"${keywords}",i];
-  way(around:${radiusMeters},${lat},${lng})["description"~"${keywords}",i];
-  way(around:${radiusMeters},${lat},${lng})["note"~"${keywords}",i];
-  way(around:${radiusMeters},${lat},${lng})["name"~"${keywords}",i];
+  node(around:${radiusMeters},${lat},${lng})["disused"];
+  node(around:${radiusMeters},${lat},${lng})["tourism"="attraction"]["historic"];
 );
 out body center;
 `;
