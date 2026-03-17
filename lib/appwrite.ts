@@ -11,6 +11,7 @@ export const databases = new Databases(client);
 
 export const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID || '';
 export const LUOGHI_COLLECTION = process.env.NEXT_PUBLIC_APPWRITE_LUOGHI_ID || '';
+export const CACHE_COLLECTION = process.env.NEXT_PUBLIC_APPWRITE_CACHE_ID || '';
 
 // ---- Auth ----
 
@@ -82,6 +83,33 @@ export async function addUserPlace(place: Omit<UserPlace, '$id'>) {
   } catch (err: any) {
     console.error('❌ Appwrite Add Document Error:', err);
     throw err;
+  }
+}
+
+// ---- Discovery Cache (Google Search results) ----
+
+export async function getDiscoveryCache(query: string) {
+  try {
+    const list = await databases.listDocuments(DB_ID, CACHE_COLLECTION, [
+      Query.equal('query', query),
+      Query.limit(1)
+    ]);
+    return list.documents[0] || null;
+  } catch (err) {
+    console.warn('Cache check failed (collection might not exist yet):', err);
+    return null;
+  }
+}
+
+export async function setDiscoveryCache(query: string, results: string) {
+  try {
+    return await databases.createDocument(DB_ID, CACHE_COLLECTION, ID.unique(), {
+      query,
+      results,
+      createdAt: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Failed to save cache:', err);
   }
 }
 
