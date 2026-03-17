@@ -78,7 +78,7 @@ export default function HomePage() {
       getUserPlaces(lat, lng, 100),
     ])
       .then(([osmData, userPlaces]) => {
-        const osmLuoghi: Place[] = (osmData.luoghi || []).map((p: any) => ({
+        const osmLuoghi: Place[] = ((osmData && osmData.luoghi) || []).map((p: any) => ({
           id: p.id,
           name: p.name,
           description: p.description || generateDescription(p),
@@ -88,7 +88,7 @@ export default function HomePage() {
           distanceKm: p.distanceKm,
         }));
 
-        const userLuoghi: Place[] = userPlaces.map((p: any) => {
+        const userLuoghi: Place[] = (userPlaces || []).map((p: any) => {
           const R = 6371;
           const dLat = ((p.lat - lat) * Math.PI) / 180;
           const dLng = ((p.lng - lng) * Math.PI) / 180;

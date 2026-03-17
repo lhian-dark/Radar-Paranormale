@@ -33,14 +33,17 @@ export default function AddPlaceForm({ userLat, userLng, userId, userName, onSuc
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('📡 Form inviato, preparo salvataggio...');
+    
     if (!name.trim() || !description.trim()) {
       setError('Nome e descrizione sono obbligatori');
       return;
     }
     setSaving(true);
     setError('');
+    
     try {
-      await addUserPlace({
+      const data = {
         name: name.trim(),
         description: description.trim().substring(0, 400),
         category,
@@ -51,10 +54,17 @@ export default function AddPlaceForm({ userLat, userLng, userId, userName, onSuc
         userName,
         createdAt: new Date().toISOString(),
         views: 0,
-      });
+      };
+      
+      console.log('📦 Dati che sto inviando ad Appwrite:', data);
+      await addUserPlace(data);
+      console.log('✅ Salvataggio completato con successo!');
       onSuccess();
     } catch (err: any) {
-      setError(err.message || 'Errore nel salvataggio');
+      console.error('❌ Errore durante il salvataggio:', err);
+      // Mostriamo un errore più descrittivo
+      const msg = err.message || 'Errore sconosciuto nel database';
+      setError(`Errore Appwrite: ${msg}`);
     } finally {
       setSaving(false);
     }

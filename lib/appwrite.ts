@@ -77,7 +77,12 @@ export async function getUserPlaces(lat: number, lng: number, radiusKm: number =
 }
 
 export async function addUserPlace(place: Omit<UserPlace, '$id'>) {
-  return databases.createDocument(DB_ID, LUOGHI_COLLECTION, ID.unique(), place);
+  try {
+    return await databases.createDocument(DB_ID, LUOGHI_COLLECTION, ID.unique(), place);
+  } catch (err: any) {
+    console.error('❌ Appwrite Add Document Error:', err);
+    throw err;
+  }
 }
 
 export { client };
