@@ -20,6 +20,7 @@ interface RadarMapProps {
   userLng: number;
   places: Place[];
   onSelectPlace: (id: number | string) => void;
+  onMapMove?: (lat: number, lng: number) => void;
   selectedId?: number | string | null;
 }
 

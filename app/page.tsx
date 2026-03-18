@@ -79,8 +79,9 @@ export default function HomePage() {
     console.log("⚛️ MISTERI_FAMOSI DB size on mount:", MISTERI_FAMOSI?.length);
   }, []);
 
-  const loadLuoghi = async (lat: number, lng: number) => {
+  const loadLuoghi = async (lat: number, lng: number, overrideGlobal?: boolean) => {
     setState('loading');
+    const activeGlobal = overrideGlobal !== undefined ? overrideGlobal : isGlobalMode;
     
     // 1. CALCOLO ISTANTANEO FAMOSI
     const famousLuoghi: Place[] = (MISTERI_FAMOSI || []).map((p) => {
@@ -109,8 +110,8 @@ export default function HomePage() {
       };
     });
 
-    // Raggio dinamico: 100km (standard) o 3000km (globale)
-    const activeRadius = isGlobalMode ? 5000 : 100;
+    // Raggio dinamico: 100km (standard) o 5000km (globale)
+    const activeRadius = activeGlobal ? 5000 : 100;
     const initialPlaces = famousLuoghi
       .filter(p => !isNaN(p.distanceKm) && p.distanceKm <= activeRadius)
       .sort((a,b) => a.distanceKm - b.distanceKm);
@@ -215,7 +216,7 @@ export default function HomePage() {
               onClick={() => {
                 const newMode = !isGlobalMode;
                 setIsGlobalMode(newMode);
-                if (userPos) loadLuoghi(userPos.lat, userPos.lng);
+                if (userPos) loadLuoghi(userPos.lat, userPos.lng, newMode);
               }}
               className={`w-10 h-5 rounded-full relative transition-colors ${isGlobalMode ? 'bg-purple-600' : 'bg-gray-700'}`}
             >
@@ -289,12 +290,13 @@ export default function HomePage() {
           )}
           {userPos && (
             <RadarMap
-              userLat={userPos.lat}
-              userLng={userPos.lng}
-              places={luoghi}
-              onSelectPlace={handleSelectPlace}
-              selectedId={selectedId}
-            />
+          userLat={userPos.lat}
+          userLng={userPos.lng}
+          places={luoghi}
+          onSelectPlace={handleSelectPlace}
+          onMapMove={(lat, lng) => loadLuoghi(lat, lng)}
+          selectedId={selectedId}
+        />
           )}
         </div>
 

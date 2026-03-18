@@ -1,6 +1,6 @@
 'use client';
 
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Circle, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { useEffect } from 'react';
 
@@ -20,10 +20,22 @@ interface Props {
   userLng: number;
   places: Place[];
   onSelectPlace: (id: number | string) => void;
+  onMapMove?: (lat: number, lng: number) => void;
   selectedId?: number | string | null;
 }
 
+function MapEvents({ onMapMove }: { onMapMove?: (lat: number, lng: number) => void }) {
+  const map = useMapEvents({
+    moveend: () => {
+      const center = map.getCenter();
+      if (onMapMove) onMapMove(center.lat, center.lng);
+    },
+  });
+  return null;
+}
+
 const userIcon = L.divIcon({
+// ... (rest of the file follows)
   className: '',
   html: `<div style="width:20px;height:20px;border-radius:50%;background:#a855f7;border:3px solid white;box-shadow:0 0 15px #a855f7;"></div>`,
   iconSize: [20, 20],
@@ -53,7 +65,7 @@ function FlyToSelected({ places, selectedId }: { places: Place[]; selectedId?: n
   return null;
 }
 
-export default function MapInner({ userLat, userLng, places, onSelectPlace, selectedId }: Props) {
+export default function MapInner({ userLat, userLng, places, onSelectPlace, onMapMove, selectedId }: Props) {
   return (
     <MapContainer
       center={[userLat, userLng]}
@@ -99,6 +111,7 @@ export default function MapInner({ userLat, userLng, places, onSelectPlace, sele
       ))}
 
       <FlyToSelected places={places} selectedId={selectedId} />
+      <MapEvents onMapMove={onMapMove} />
     </MapContainer>
   );
 }

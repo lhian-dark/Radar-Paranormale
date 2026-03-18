@@ -485,8 +485,8 @@ export const MISTERI_FAMOSI: FamousMystery[] = [
     id: "f-60",
     name: "Torre della Bella Marsilia",
     description: "Talamone (GR). Margherita Marsili rapita nel '500; appare notti senza luna con capelli rossi.",
-    lat: 42.5500,
-    lng: 10.9833,
+    lat: 42.611786,
+    lng: 11.117056,
     category: "storico"
   },
   {
@@ -509,8 +509,8 @@ export const MISTERI_FAMOSI: FamousMystery[] = [
     id: "f-63",
     name: "Casa Morandini",
     description: "Grosseto (GR). Villa liberty sfitta per fantasmi; rumori notte, voci e luci strane dagli anni '70.",
-    lat: 42.7600,
-    lng: 11.1133,
+    lat: 42.766213538232826,
+    lng: 11.111053012556322,
     category: "villa"
   },
   {
