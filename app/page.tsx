@@ -73,18 +73,25 @@ export default function HomePage() {
     );
   }, []);
 
+  // Debug Database on mount
+  useEffect(() => {
+    console.log("⚛️ MISTERI_FAMOSI DB size on mount:", MISTERI_FAMOSI?.length);
+  }, []);
+
   const loadLuoghi = async (lat: number, lng: number) => {
     setState('loading');
     
     // 1. CALCOLO ISTANTANEO FAMOSI
-    const famousLuoghi: Place[] = MISTERI_FAMOSI.map((p) => {
+    const famousLuoghi: Place[] = (MISTERI_FAMOSI || []).map((p) => {
       const R = 6371;
-      const dLat = ((p.lat - lat) * Math.PI) / 180;
-      const dLng = ((p.lng - lng) * Math.PI) / 180;
+      const pLat = Number(p.lat);
+      const pLng = Number(p.lng);
+      const dLat = ((pLat - lat) * Math.PI) / 180;
+      const dLng = ((pLng - lng) * Math.PI) / 180;
       const a =
         Math.sin(dLat / 2) ** 2 +
         Math.cos((lat * Math.PI) / 180) *
-          Math.cos((p.lat * Math.PI) / 180) *
+          Math.cos((pLat * Math.PI) / 180) *
           Math.sin(dLng / 2) ** 2;
       const dist = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
 
@@ -93,21 +100,34 @@ export default function HomePage() {
         name: p.name,
         description: p.description,
         category: p.category,
-        lat: p.lat,
-        lng: p.lng,
+        lat: pLat,
+        lng: pLng,
         distanceKm: dist,
         isFamous: true,
       };
-    }).filter(p => p.distanceKm <= 100);
+    });
 
-    const initialPlaces = famousLuoghi.sort((a,b) => a.distanceKm - b.distanceKm);
+    // Filtriamo i famosi con raggio ENORME (3000km) per debugging
+    const filteredFamous = famousLuoghi
+      .filter(p => !isNaN(p.distanceKm) && p.distanceKm <= 3000);
+
+    // INIEZIONE PUNTO DI TEST VICINO ALL'UTENTE
+    const testPoint: Place = {
+      id: "famous-debug-test",
+      name: "🏰 PUNTO DI TEST ÉLITE",
+      description: "Se vedi questo, il sistema di caricamento è attivo. La distanza è finta.",
+      category: "test",
+      lat: lat + 0.001,
+      lng: lng + 0.001,
+      distanceKm: 0.1,
+      isFamous: true
+    };
+
+    const initialPlaces = [testPoint, ...filteredFamous].sort((a,b) => a.distanceKm - b.distanceKm);
     setLuoghi(initialPlaces);
     
     // DIAGNOSTICA IN CONSOLE
-    console.log(`📡 RADAR SCAN: Found ${initialPlaces.length} Famous Mysteries nearby.`);
-    if (initialPlaces.length > 0) {
-      console.log(`🔝 Top 3 Famous:`, initialPlaces.slice(0, 3).map(p => p.name));
-    }
+    console.log(`📡 RADAR SCAN: Found ${filteredFamous.length} Real Elite + 1 Test. DB Total: ${MISTERI_FAMOSI?.length}`);
 
     // 2. SCANSIONE IBRIDA ASINCRONA (OSM + User)
     try {
@@ -147,19 +167,22 @@ export default function HomePage() {
         };
       });
 
-      console.log(`✅ SCAN FINISHED: OSM(${osmLuoghi.length}) User(${userLuoghi.length}) Elite(${initialPlaces.length})`);
+      // Unione robusta con Mappa (usiamo any come chiave per accettare sia string che number senza errori)
+      const allMap = new Map<any, Place>();
+      osmLuoghi.forEach(p => allMap.set(p.id, p));
+      initialPlaces.forEach(p => allMap.set(p.id, { ...p, isFamous: true })); // Precedenza ai Famosi
+      userLuoghi.forEach(p => allMap.set(p.id, p));
 
-      // Uniamo tutto assicurandoci che i Famosi (initialPlaces) siano INCLUSI
-      const totalCombined = [...userLuoghi, ...initialPlaces, ...osmLuoghi]
-        .filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i) // Rimuovi eventuali duplicati di ID
+      const totalCombined = Array.from(allMap.values())
         .sort((a, b) => a.distanceKm - b.distanceKm)
-        .slice(0, 150); // Limite per non saturare la mappa
+        .slice(0, 300);
+
+      console.log(`✅ SCAN FINISHED: Merged ${allMap.size} unique places. Elite in map: ${totalCombined.filter(p=>p.isFamous).length}`);
 
       setLuoghi(totalCombined);
       setState('ready');
     } catch (err) {
       console.error("❌ Hybrid scan failed:", err);
-      // Fallback: mostriamo ciò che abbiamo (i famosi iniziali)
       setState('ready');
     }
   };
@@ -185,10 +208,13 @@ export default function HomePage() {
         <div className="flex items-center gap-3">
           <span className="text-2xl">🔮</span>
           <div>
-            <h1 className="text-lg font-bold text-white leading-tight">Radar Paranormale</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-bold text-white leading-tight">Radar Paranormale</h1>
+              <span className="bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded animate-pulse">NEXT-JS v2.2.1-DEBUG</span>
+            </div>
             <p className="text-xs text-purple-400 hidden sm:block">
               {state === 'ready' 
-                ? `🎯 ${luoghi.filter(p=>p.isFamous).length} Élite · 👻 ${luoghi.filter(p=>!p.isFamous && !p.isUserPlace).length} OSM · 🏳️ 100km` 
+                ? `🎯 ${luoghi.filter(p=>p.isFamous).length} Élite [${luoghi.filter(p=>p.isFamous).slice(0,2).map(p=>p.id.toString().slice(-5)).join(',')}] · 👻 ${luoghi.filter(p=>!p.isFamous && !p.isUserPlace).length} OSM · DB:${MISTERI_FAMOSI?.length || 0} · (Lat: ${userPos?.lat.toFixed(2)} Lng: ${userPos?.lng.toFixed(2)})` 
                 : '📡 Scansione frequenze in corso...'}
             </p>
           </div>

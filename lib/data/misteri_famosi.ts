@@ -367,5 +367,190 @@ export const MISTERI_FAMOSI: FamousMystery[] = [
     lat: 44.5000,
     lng: 7.4833,
     category: "villa"
+  },
+  // --- NUOVI INSERIMENTI ---
+  {
+    id: "f-46",
+    name: "Isola di Poveglia",
+    description: "Venezia (VE). Lazzaretto peste XIV sec., poi manicomio con 160.000 morti; fantasma dottore suicidato e urla pazienti.",
+    lat: 45.3667,
+    lng: 12.3000,
+    category: "manicomio"
+  },
+  {
+    id: "f-47",
+    name: "Castello di Monselice",
+    description: "Monselice (PD). Prigioni medievale con lamenti prigionieri torturati; passi e figure spettrali.",
+    lat: 45.2361,
+    lng: 11.7433,
+    category: "castello"
+  },
+  {
+    id: "f-48",
+    name: "Castello di Collalto",
+    description: "Susegana (TV). Bianca murata viva per amore proibito XI sec.; pianto luna piena sui bastioni.",
+    lat: 45.8833,
+    lng: 12.2667,
+    category: "castello"
+  },
+  {
+    id: "f-49",
+    name: "Villa Foscari - La Malcontenta",
+    description: "Mira (VE). Elisabetta Dolfin segregata dal marito; spirito malinconico con rumori e cali temperatura.",
+    lat: 45.4167,
+    lng: 12.2333,
+    category: "villa"
+  },
+  {
+    id: "f-50",
+    name: "Castello di Valbona",
+    description: "Lozzo Atestino (PD). Figlia Ghibelli murata viva per amore Duecento; vaga in lacrime tra merli.",
+    lat: 45.2667,
+    lng: 11.5167,
+    category: "castello"
+  },
+  {
+    id: "f-51",
+    name: "Masso della Mandringa",
+    description: "Volterra (PI). Rocca dove streghe si riunivano per sabba; Aradia vi insegnò magia nel 1300.",
+    lat: 43.4000,
+    lng: 10.8667,
+    category: "storico"
+  },
+  {
+    id: "f-52",
+    name: "Ex Manicomio di Volterra",
+    description: "Volterra (PI). Complesso psichiatrico con torture e morti; urla e ombre pazienti riportate in urbex.",
+    lat: 43.4002,
+    lng: 10.8759,
+    category: "manicomio"
+  },
+  {
+    id: "f-53",
+    name: "Vicolo delle Streghe",
+    description: "Volterra (PI). Vicolo medievale legato a processi; presenze sussurranti notti luna piena.",
+    lat: 43.4014,
+    lng: 10.8614,
+    category: "storico"
+  },
+  {
+    id: "f-54",
+    name: "Palazzo Viti - Dama Bianca",
+    description: "Volterra (PI). Nobildonna appare lune piene XIX sec.; palazzo rinascimentale con scale infestate.",
+    lat: 43.4010,
+    lng: 10.8605,
+    category: "storico"
+  },
+  {
+    id: "f-55",
+    name: "Balze di Volterra",
+    description: "Volterra (PI). Erosione che inghiotte case; leggende etrusche di spiriti sotterranei e crolli maledetti.",
+    lat: 43.3950,
+    lng: 10.8700,
+    category: "storico"
+  },
+  {
+    id: "f-56",
+    name: "Villa Morazzana",
+    description: "Livorno (LI). Villa più infestata di Livorno; 'do di petto' risuona, fantasmi nobili e urla notturne.",
+    lat: 43.5000,
+    lng: 10.3167,
+    category: "villa"
+  },
+  {
+    id: "f-57",
+    name: "Villa delle Rose - Villa Dupouy",
+    description: "Livorno (LI). Ragazzina bionda appare alla finestra; costruita Quattrocento, cani ululano al cimitero interno.",
+    lat: 43.4920,
+    lng: 10.3200,
+    category: "villa"
+  },
+  {
+    id: "f-58",
+    name: "Villino Wetryk",
+    description: "Livorno (LI). Fantasma del mago Copperfield livornese appare al piccolo erede; illusioni spettrali.",
+    lat: 43.5500,
+    lng: 10.3064,
+    category: "villa"
+  },
+  {
+    id: "f-59",
+    name: "Torre dei Fantasmi",
+    description: "Livorno (LI). Torre guardia 1702 maledetta; voci chiamano nomi, lanterna rossa caccia anime.",
+    lat: 43.5500,
+    lng: 10.3000,
+    category: "storico"
+  },
+  {
+    id: "f-60",
+    name: "Torre della Bella Marsilia",
+    description: "Talamone (GR). Margherita Marsili rapita nel '500; appare notti senza luna con capelli rossi.",
+    lat: 42.5500,
+    lng: 10.9833,
+    category: "storico"
+  },
+  {
+    id: "f-61",
+    name: "Arcidosso - David Lazzaretti",
+    description: "Arcidosso (GR). Borgo profeta XIX sec.; simboli occulti, presenze mistiche e riti giacobini.",
+    lat: 42.8667,
+    lng: 11.1333,
+    category: "storico"
+  },
+  {
+    id: "f-62",
+    name: "Buriano - Borgo fantasma",
+    description: "Castiglione della Pescaia (GR). Villaggio abbandonato per malaria; case vuote e presenze eteree tra rovine.",
+    lat: 43.0000,
+    lng: 10.8833,
+    category: "abbandonato"
+  },
+  {
+    id: "f-63",
+    name: "Casa Morandini",
+    description: "Grosseto (GR). Villa liberty sfitta per fantasmi; rumori notte, voci e luci strane dagli anni '70.",
+    lat: 42.7600,
+    lng: 11.1133,
+    category: "villa"
+  },
+  {
+    id: "f-64",
+    name: "Chiesa di Sant'Agostino",
+    description: "Lucca centro. Botola nasconde pozzo all'Inferno; leggenda collega ad Agharti sotterraneo.",
+    lat: 43.8430,
+    lng: 10.5010,
+    category: "chiesa"
+  },
+  {
+    id: "f-65",
+    name: "Giardino Botanico",
+    description: "Lucca. Carro di fuoco vorticoso nel laghetto notti; luogo stregato dai Borboni 1820.",
+    lat: 43.8417,
+    lng: 10.5033,
+    category: "storico"
+  },
+  {
+    id: "f-66",
+    name: "Duomo di Pisa",
+    description: "Pisa. Unghiate del Diavolo su pilastri; leggende medievali di presenze infernali.",
+    lat: 43.7230,
+    lng: 10.3966,
+    category: "storico"
+  },
+  {
+    id: "f-67",
+    name: "Villa di Corliano",
+    description: "San Giuliano Terme (PI). Fantasma Teresa appare nei giardini; tomba Botro Lupa nel bosco.",
+    lat: 43.7667,
+    lng: 10.5167,
+    category: "villa"
+  },
+  {
+    id: "f-68",
+    name: "Pieve San Pietro Gropina",
+    description: "Loro Ciuffenna (AR). Green Man e chimere precristiane; chiese paleocristiane sottostanti.",
+    lat: 43.5333,
+    lng: 11.6000,
+    category: "chiesa"
   }
 ];
