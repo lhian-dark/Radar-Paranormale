@@ -24,18 +24,27 @@ interface Props {
   selectedId?: number | string | null;
 }
 
+// Flag globale (dentro il modulo ma fuori dal render per evitare ricaricamenti)
+let isProgrammaticMove = false;
+
 function MapEvents({ onMapMove }: { onMapMove?: (lat: number, lng: number) => void }) {
   const map = useMapEvents({
     moveend: () => {
+      if (isProgrammaticMove) {
+        isProgrammaticMove = false;
+        return;
+      }
       const center = map.getCenter();
       if (onMapMove) onMapMove(center.lat, center.lng);
     },
+    movestart: () => {
+      // Potremmo voler bloccare qualcosa qui se serve
+    }
   });
   return null;
 }
 
 const userIcon = L.divIcon({
-// ... (rest of the file follows)
   className: '',
   html: `<div style="width:20px;height:20px;border-radius:50%;background:#a855f7;border:3px solid white;box-shadow:0 0 15px #a855f7;"></div>`,
   iconSize: [20, 20],
@@ -55,13 +64,21 @@ const placeIcon = (isUser: boolean, isFamous: boolean, selected: boolean) =>
     iconAnchor: [selected ? 18 : 14, selected ? 18 : 14],
   });
 
-function FlyToSelected({ places, selectedId }: { places: Place[]; selectedId?: number | string | null }) {
+function FlyToSelected({ userLat, userLng, places, selectedId }: { userLat: number; userLng: number; places: Place[]; selectedId?: number | string | null }) {
   const map = useMap();
   useEffect(() => {
-    if (!selectedId) return;
+    if (!selectedId) {
+      // Quando deselezioniamo, torniamo all'utente
+      isProgrammaticMove = true;
+      map.flyTo([userLat, userLng], 10, { duration: 1.5 });
+      return;
+    }
     const p = places.find((p) => p.id === selectedId);
-    if (p) map.flyTo([p.lat, p.lng], 14, { duration: 1 });
-  }, [selectedId, places, map]);
+    if (p) {
+      isProgrammaticMove = true;
+      map.flyTo([p.lat, p.lng], 14, { duration: 1 });
+    }
+  }, [selectedId, places, map, userLat, userLng]);
   return null;
 }
 
@@ -110,7 +127,7 @@ export default function MapInner({ userLat, userLng, places, onSelectPlace, onMa
         </Marker>
       ))}
 
-      <FlyToSelected places={places} selectedId={selectedId} />
+      <FlyToSelected userLat={userLat} userLng={userLng} places={places} selectedId={selectedId} />
       <MapEvents onMapMove={onMapMove} />
     </MapContainer>
   );

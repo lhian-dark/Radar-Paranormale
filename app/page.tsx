@@ -60,7 +60,7 @@ export default function HomePage() {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         setUserPos({ lat, lng });
-        loadLuoghi(lat, lng);
+        loadLuoghi(lat, lng, undefined, true);
       },
       (err) => {
         setState('error');
@@ -79,11 +79,31 @@ export default function HomePage() {
     console.log("⚛️ MISTERI_FAMOSI DB size on mount:", MISTERI_FAMOSI?.length);
   }, []);
 
-  const loadLuoghi = async (lat: number, lng: number, overrideGlobal?: boolean) => {
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const lastScanPos = useRef<{ lat: number; lng: number } | null>(null);
+  const scanTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const loadLuoghi = async (lat: number, lng: number, overrideGlobal?: boolean, forceScan?: boolean) => {
+    // 0. CONTROLLO DISTANZA (Evitiamo scansioni sotto 1km per performance, a meno che non sia forzato)
+    if (lastScanPos.current && overrideGlobal === undefined && !forceScan) {
+      const R = 6371;
+      const dLat = ((lat - lastScanPos.current.lat) * Math.PI) / 180;
+      const dLng = ((lng - lastScanPos.current.lng) * Math.PI) / 180;
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat * Math.PI) / 180) * Math.cos((lastScanPos.current.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+      const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      if (d < 1) return; // Troppo vicino, non ricaricare OSM
+    }
+
+    // 1. GESTIONE ABORT (Annulliamo scansioni precedenti)
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    lastScanPos.current = { lat, lng };
     setState('loading');
     const activeGlobal = overrideGlobal !== undefined ? overrideGlobal : isGlobalMode;
     
-    // 1. CALCOLO ISTANTANEO FAMOSI
+    // 2. CALCOLO ISTANTANEO FAMOSI
     const famousLuoghi: Place[] = (MISTERI_FAMOSI || []).map((p) => {
       const R = 6371;
       const pLat = Number(p.lat);
@@ -110,25 +130,27 @@ export default function HomePage() {
       };
     });
 
-    // Raggio dinamico: 100km (standard) o 5000km (globale)
     const activeRadius = activeGlobal ? 5000 : 100;
     const initialPlaces = famousLuoghi
       .filter(p => !isNaN(p.distanceKm) && p.distanceKm <= activeRadius)
       .sort((a,b) => a.distanceKm - b.distanceKm);
 
     setLuoghi(initialPlaces);
-    
-    // DIAGNOSTICA IN CONSOLE
     console.log(`📡 RADAR SCAN [${activeRadius}km]: Elite=${initialPlaces.length}`);
 
-    // 2. SCANSIONE IBRIDA ASINCRONA (OSM + User)
+    // 3. SCANSIONE IBRIDA ASINCRONA (OSM + User)
     try {
       const [osmRes, userPlacesData] = await Promise.all([
-        fetch(`/api/luoghi?lat=${lat}&lng=${lng}&raggio=100`)
+        fetch(`/api/luoghi?lat=${lat}&lng=${lng}&raggio=100`, { signal: controller.signal })
           .then(r => r.json())
-          .catch(e => ({ error: e.message, luoghi: [] })),
+          .catch(e => {
+            if (e.name === 'AbortError') return { aborted: true, luoghi: [] };
+            return { error: e.message, luoghi: [] };
+          }),
         getUserPlaces(lat, lng, 100).catch(() => [])
       ]);
+
+      if ((osmRes as any).aborted) return; // Ignora se annullato
 
       const osmLuoghi: Place[] = ((osmRes as any)?.luoghi || []).map((p: any) => ({
         id: p.id,
@@ -289,14 +311,33 @@ export default function HomePage() {
             </div>
           )}
           {userPos && (
-            <RadarMap
-          userLat={userPos.lat}
-          userLng={userPos.lng}
-          places={luoghi}
-          onSelectPlace={handleSelectPlace}
-          onMapMove={(lat, lng) => loadLuoghi(lat, lng)}
-          selectedId={selectedId}
-        />
+            <>
+              <RadarMap
+                userLat={userPos.lat}
+                userLng={userPos.lng}
+                places={luoghi}
+                onSelectPlace={handleSelectPlace}
+                onMapMove={(lat, lng) => {
+                  if (scanTimeout.current) clearTimeout(scanTimeout.current);
+                  scanTimeout.current = setTimeout(() => {
+                    loadLuoghi(lat, lng);
+                  }, 800);
+                }}
+                selectedId={selectedId}
+              />
+              {/* Reset View Button */}
+              {(selectedId || (lastScanPos.current && (Math.abs(lastScanPos.current.lat - userPos.lat) > 0.01 || Math.abs(lastScanPos.current.lng - userPos.lng) > 0.01))) && (
+                <button
+                  onClick={() => {
+                    setSelectedId(null);
+                    if (userPos) loadLuoghi(userPos.lat, userPos.lng, undefined, true);
+                  }}
+                  className="absolute bottom-6 left-6 z-20 bg-purple-900/80 hover:bg-purple-800 text-white px-4 py-2 rounded-full border border-purple-500/50 shadow-lg backdrop-blur-sm text-xs font-bold transition-all animate-bounce"
+                >
+                  🎯 Ricentra su di me
+                </button>
+              )}
+            </>
           )}
         </div>
 
