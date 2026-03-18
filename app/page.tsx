@@ -29,6 +29,7 @@ export default function HomePage() {
   const [state, setState] = useState<AppState>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
+  const [isGlobalMode, setIsGlobalMode] = useState(false);
   const [luoghi, setLuoghi] = useState<Place[]>([]);
   const [selectedId, setSelectedId] = useState<number | string | null>(null);
   const [user, setUser] = useState<any>(null);
@@ -86,6 +87,7 @@ export default function HomePage() {
       const R = 6371;
       const pLat = Number(p.lat);
       const pLng = Number(p.lng);
+      
       const dLat = ((pLat - lat) * Math.PI) / 180;
       const dLng = ((pLng - lng) * Math.PI) / 180;
       const a =
@@ -107,27 +109,16 @@ export default function HomePage() {
       };
     });
 
-    // Filtriamo i famosi con raggio ENORME (3000km) per debugging
-    const filteredFamous = famousLuoghi
-      .filter(p => !isNaN(p.distanceKm) && p.distanceKm <= 3000);
+    // Raggio dinamico: 100km (standard) o 3000km (globale)
+    const activeRadius = isGlobalMode ? 5000 : 100;
+    const initialPlaces = famousLuoghi
+      .filter(p => !isNaN(p.distanceKm) && p.distanceKm <= activeRadius)
+      .sort((a,b) => a.distanceKm - b.distanceKm);
 
-    // INIEZIONE PUNTO DI TEST VICINO ALL'UTENTE
-    const testPoint: Place = {
-      id: "famous-debug-test",
-      name: "🏰 PUNTO DI TEST ÉLITE",
-      description: "Se vedi questo, il sistema di caricamento è attivo. La distanza è finta.",
-      category: "test",
-      lat: lat + 0.001,
-      lng: lng + 0.001,
-      distanceKm: 0.1,
-      isFamous: true
-    };
-
-    const initialPlaces = [testPoint, ...filteredFamous].sort((a,b) => a.distanceKm - b.distanceKm);
     setLuoghi(initialPlaces);
     
     // DIAGNOSTICA IN CONSOLE
-    console.log(`📡 RADAR SCAN: Found ${filteredFamous.length} Real Elite + 1 Test. DB Total: ${MISTERI_FAMOSI?.length}`);
+    console.log(`📡 RADAR SCAN [${activeRadius}km]: Elite=${initialPlaces.length}`);
 
     // 2. SCANSIONE IBRIDA ASINCRONA (OSM + User)
     try {
@@ -209,19 +200,28 @@ export default function HomePage() {
         <div className="flex items-center gap-3">
           <span className="text-2xl">🔮</span>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold text-white leading-tight">Radar Paranormale</h1>
-              <span className="bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded animate-pulse">NEXT-JS v2.2.1-DEBUG</span>
-            </div>
             <p className="text-xs text-purple-400 hidden sm:block">
               {state === 'ready' 
-                ? `🎯 ${luoghi.filter(p=>p.isFamous).length} Élite [${luoghi.filter(p=>p.isFamous).slice(0,2).map(p=>p.id.toString().slice(-5)).join(',')}] · 👻 ${luoghi.filter(p=>!p.isFamous && !p.isUserPlace).length} OSM · DB:${MISTERI_FAMOSI?.length || 0} · (Lat: ${userPos?.lat.toFixed(2)} Lng: ${userPos?.lng.toFixed(2)})` 
+                ? `🎯 ${luoghi.filter(p=>p.isFamous).length} Élite · 👻 ${luoghi.filter(p=>!p.isFamous && !p.isUserPlace).length} OSM · 🏳️ ${isGlobalMode ? 'Italia' : '100km'}` 
                 : '📡 Scansione frequenze in corso...'}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 bg-purple-900/30 px-3 py-1.5 rounded-full border border-purple-800/50">
+            <span className="text-[10px] font-bold text-purple-200 uppercase tracking-wider">Visione Globale</span>
+            <button
+              onClick={() => {
+                const newMode = !isGlobalMode;
+                setIsGlobalMode(newMode);
+                if (userPos) loadLuoghi(userPos.lat, userPos.lng);
+              }}
+              className={`w-10 h-5 rounded-full relative transition-colors ${isGlobalMode ? 'bg-purple-600' : 'bg-gray-700'}`}
+            >
+              <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isGlobalMode ? 'left-6' : 'left-1'}`} />
+            </button>
+          </div>
           {user ? (
             <>
               <div className="hidden sm:flex items-center gap-2">

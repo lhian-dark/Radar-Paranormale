@@ -16,8 +16,8 @@ const OVERPASS_MIRRORS = [
 ];
 
 function buildQuery(lat: number, lng: number, radiusMeters: number): string {
-  // Query bilanciata: usa nwr per efficienza ma con filtri chiari
-  const tags = "castle|fort|manor|tower|ruins|archaeological_site|monument|tomb|monastery|convent|hospital|battlefield|prison|psychiatric";
+  // Query raffinata: rimosso 'monument' e 'battlefield' per ridurre il rumore
+  const tags = "castle|fort|manor|tower|ruins|archaeological_site|tomb|monastery|convent|hospital|prison|psychiatric";
   return `[out:json][timeout:90];(nwr(around:${radiusMeters},${lat},${lng})["historic"~"${tags}"];nwr(around:${radiusMeters},${lat},${lng})["building"~"abandoned|ruins|collapsed"];nwr(around:${radiusMeters},${lat},${lng})["abandoned"="yes"];);out center;`;
 }
 
@@ -41,7 +41,15 @@ function detectCategory(tags: Record<string, string>): string {
   const name = (tags.name || '').toLowerCase();
   const text = (name + (tags.description || '') + (tags.note || '')).toLowerCase();
   
-  if (text.includes('leggenda') || text.includes('folklore') || text.includes('mistero') || text.includes('fantasma')) return 'storico';
+  // Folklore solo se accompagnato da termini 'oscuri' o se è un sito fisico rilevante
+  if (text.includes('leggenda') || text.includes('mistero') || text.includes('fantasma')) {
+    if (h === 'ruins' || b === 'abandoned' || h === 'castle' || text.includes('maledetta') || text.includes('apparizion')) {
+       // Manteniamo come categoria specifica se possibile
+    } else {
+       // Se è solo un cartello o monumento folkloristico, lo declassiamo
+       if (h === 'monument' || h === 'memorial') return 'ignore';
+    }
+  }
 
   if (a === 'hospital' || a === 'social_facility' || name.includes('manicomio') || name.includes('ospedale') || name.includes('asylum') || name.includes('psichiatr')) {
     if (tags.abandoned || b === 'abandoned' || h || tags.disused) return 'manicomio';
@@ -54,9 +62,10 @@ function detectCategory(tags: Record<string, string>): string {
   if (h === 'monastery' || a === 'monastery' || h === 'convent') return 'monastero';
   if (a === 'church' && (tags.abandoned || b === 'abandoned')) return 'abbandonato'; 
   if (h === 'church' || a === 'church') return 'chiesa';
-  if (h === 'monument' || h === 'memorial' || h === 'tower' || h === 'battlefield') return 'storico';
+  // Rimosso tower e monument dalla promozione automatica a storico
   if (h === 'archaeological_site') return 'sito_archeologico';
   if (tags.abandoned || tags.disused || b === 'abandoned' || b === 'disused') return 'abbandonato';
+  
   return 'storico';
 }
 
@@ -138,7 +147,7 @@ export async function fetchParanormalPlaces(
             distanceKm: Math.round(calcDistanceKm(lat, lng, elLat, elLng) * 10) / 10,
           } as OsmPlace;
         })
-        .filter((p: OsmPlace) => p.distanceKm <= radiusKm)
+        .filter((p: OsmPlace) => p.category !== 'ignore' && p.distanceKm <= radiusKm)
         .sort((a: OsmPlace, b: OsmPlace) => a.distanceKm - b.distanceKm);
 
       return places;
