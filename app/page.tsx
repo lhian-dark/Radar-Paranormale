@@ -167,17 +167,18 @@ export default function HomePage() {
         };
       });
 
-      // Unione robusta con Mappa (usiamo any come chiave per accettare sia string che number senza errori)
-      const allMap = new Map<any, Place>();
-      osmLuoghi.forEach(p => allMap.set(p.id, p));
-      initialPlaces.forEach(p => allMap.set(p.id, { ...p, isFamous: true })); // Precedenza ai Famosi
-      userLuoghi.forEach(p => allMap.set(p.id, p));
+      // Unione robusta: preserviamo TUTTI gli Elite e limitiamo solo gli altri
+      const rawCombined = [...initialPlaces, ...userLuoghi, ...osmLuoghi];
+      
+      // Rimozioni duplicati ID
+      const uniqueCombined = rawCombined.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
 
-      const totalCombined = Array.from(allMap.values())
-        .sort((a, b) => a.distanceKm - b.distanceKm)
-        .slice(0, 300);
+      const elites = uniqueCombined.filter(p => p.isFamous);
+      const others = uniqueCombined.filter(p => !p.isFamous).slice(0, 200); // Limite solo per OSM/User
 
-      console.log(`✅ SCAN FINISHED: Merged ${allMap.size} unique places. Elite in map: ${totalCombined.filter(p=>p.isFamous).length}`);
+      const totalCombined = [...elites, ...others].sort((a, b) => a.distanceKm - b.distanceKm);
+
+      console.log(`✅ SCAN FINISHED: Elite(${elites.length}) Others(${others.length}) Total(${totalCombined.length})`);
 
       setLuoghi(totalCombined);
       setState('ready');
