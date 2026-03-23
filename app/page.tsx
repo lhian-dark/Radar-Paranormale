@@ -5,7 +5,6 @@ import dynamic from 'next/dynamic';
 import LuoghiList from '@/components/LuoghiList';
 import AddPlaceForm from '@/components/AddPlaceForm';
 import { loginGoogle, getSession, logout, getUserPlaces } from '@/lib/appwrite';
-import { generateDescription } from '@/lib/descriptions';
 import { MISTERI_FAMOSI } from '@/lib/data/misteri_famosi';
 
 const RadarMap = dynamic(() => import('@/components/RadarMap'), { ssr: false });
@@ -138,29 +137,9 @@ export default function HomePage() {
     setLuoghi(initialPlaces);
     console.log(`📡 RADAR SCAN [${activeRadius}km]: Elite=${initialPlaces.length}`);
 
-    // 3. SCANSIONE IBRIDA ASINCRONA (OSM + User)
+    // 3. SCANSIONE UTENTI (Appwrite)
     try {
-      const [osmRes, userPlacesData] = await Promise.all([
-        fetch(`/api/luoghi?lat=${lat}&lng=${lng}&raggio=100`, { signal: controller.signal })
-          .then(r => r.json())
-          .catch(e => {
-            if (e.name === 'AbortError') return { aborted: true, luoghi: [] };
-            return { error: e.message, luoghi: [] };
-          }),
-        getUserPlaces(lat, lng, 100).catch(() => [])
-      ]);
-
-      if ((osmRes as any).aborted) return; // Ignora se annullato
-
-      const osmLuoghi: Place[] = ((osmRes as any)?.luoghi || []).map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        description: p.description || generateDescription(p),
-        category: p.category,
-        lat: p.lat,
-        lng: p.lng,
-        distanceKm: p.distanceKm,
-      }));
+      const userPlacesData = await getUserPlaces(lat, lng, 100).catch(() => []);
 
       const userLuoghi: Place[] = ((userPlacesData as any) || []).map((p: any) => {
         const R = 6371;
@@ -181,23 +160,18 @@ export default function HomePage() {
         };
       });
 
-      // Unione robusta: preserviamo TUTTI gli Elite e limitiamo solo gli altri
-      const rawCombined = [...initialPlaces, ...userLuoghi, ...osmLuoghi];
+      // Unione: Élite + User
+      const rawCombined = [...initialPlaces, ...userLuoghi];
       
-      // Rimozioni duplicati ID
       const uniqueCombined = rawCombined.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
+      const totalCombined = uniqueCombined.sort((a, b) => a.distanceKm - b.distanceKm);
 
-      const elites = uniqueCombined.filter(p => p.isFamous);
-      const others = uniqueCombined.filter(p => !p.isFamous).slice(0, 200); // Limite solo per OSM/User
-
-      const totalCombined = [...elites, ...others].sort((a, b) => a.distanceKm - b.distanceKm);
-
-      console.log(`✅ SCAN FINISHED: Elite(${elites.length}) Others(${others.length}) Total(${totalCombined.length})`);
+      console.log(`✅ SCAN FINISHED: Elite(${initialPlaces.length}) User(${userLuoghi.length}) Total(${totalCombined.length})`);
 
       setLuoghi(totalCombined);
       setState('ready');
     } catch (err) {
-      console.error("❌ Hybrid scan failed:", err);
+      console.error("❌ Scan failed:", err);
       setState('ready');
     }
   };
@@ -225,7 +199,7 @@ export default function HomePage() {
           <div>
             <p className="text-xs text-purple-400 hidden sm:block">
               {state === 'ready' 
-                ? `🎯 ${luoghi.filter(p=>p.isFamous).length} Élite · 👻 ${luoghi.filter(p=>!p.isFamous && !p.isUserPlace).length} OSM · 🏳️ ${isGlobalMode ? 'Italia' : '100km'}` 
+                ? `🎯 ${luoghi.filter(p=>p.isFamous).length} Élite · 📡 Radar Attivo` 
                 : '📡 Scansione frequenze in corso...'}
             </p>
           </div>

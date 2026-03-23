@@ -24,21 +24,12 @@ interface Props {
   selectedId?: number | string | null;
 }
 
-// Flag globale (dentro il modulo ma fuori dal render per evitare ricaricamenti)
-let isProgrammaticMove = false;
-
+// Map events component to handle pans
 function MapEvents({ onMapMove }: { onMapMove?: (lat: number, lng: number) => void }) {
   const map = useMapEvents({
     moveend: () => {
-      if (isProgrammaticMove) {
-        isProgrammaticMove = false;
-        return;
-      }
       const center = map.getCenter();
       if (onMapMove) onMapMove(center.lat, center.lng);
-    },
-    movestart: () => {
-      // Potremmo voler bloccare qualcosa qui se serve
     }
   });
   return null;
@@ -64,24 +55,6 @@ const placeIcon = (isUser: boolean, isFamous: boolean, selected: boolean) =>
     iconAnchor: [selected ? 18 : 14, selected ? 18 : 14],
   });
 
-function FlyToSelected({ userLat, userLng, places, selectedId }: { userLat: number; userLng: number; places: Place[]; selectedId?: number | string | null }) {
-  const map = useMap();
-  useEffect(() => {
-    if (!selectedId) {
-      // Quando deselezioniamo, torniamo all'utente
-      isProgrammaticMove = true;
-      map.flyTo([userLat, userLng], 10, { duration: 1.5 });
-      return;
-    }
-    const p = places.find((p) => p.id === selectedId);
-    if (p) {
-      isProgrammaticMove = true;
-      map.flyTo([p.lat, p.lng], 14, { duration: 1 });
-    }
-  }, [selectedId, places, map, userLat, userLng]);
-  return null;
-}
-
 export default function MapInner({ userLat, userLng, places, onSelectPlace, onMapMove, selectedId }: Props) {
   return (
     <MapContainer
@@ -102,12 +75,6 @@ export default function MapInner({ userLat, userLng, places, onSelectPlace, onMa
         </Popup>
       </Marker>
 
-      {/* Range circle */}
-      <Circle
-        center={[userLat, userLng]}
-        radius={100000}
-        pathOptions={{ color: '#a855f7', fillColor: '#a855f7', fillOpacity: 0.04, weight: 1, dashArray: '6,6' }}
-      />
 
       {/* Place markers */}
       {places.map((p) => (
@@ -127,7 +94,6 @@ export default function MapInner({ userLat, userLng, places, onSelectPlace, onMa
         </Marker>
       ))}
 
-      <FlyToSelected userLat={userLat} userLng={userLng} places={places} selectedId={selectedId} />
       <MapEvents onMapMove={onMapMove} />
     </MapContainer>
   );
