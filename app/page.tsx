@@ -33,7 +33,24 @@ export default function HomePage() {
   const [selectedId, setSelectedId] = useState<number | string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [mapType, setMapType] = useState<'street' | 'satellite'>('street');
+  const [allFamousPlaces, setAllFamousPlaces] = useState<Place[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
+
+  // Initial Calculation of Famous Places
+  useEffect(() => {
+    const initialFamous: Place[] = (MISTERI_FAMOSI || []).map((p) => ({
+      id: `famous-${p.id}`,
+      name: p.name,
+      description: p.description,
+      category: p.category,
+      lat: Number(p.lat),
+      lng: Number(p.lng),
+      distanceKm: 0,
+      isFamous: true,
+    }));
+    setAllFamousPlaces(initialFamous);
+  }, []);
 
   // Auth check
   useEffect(() => {
@@ -73,76 +90,49 @@ export default function HomePage() {
     );
   }, []);
 
-  // Debug Database on mount
-  useEffect(() => {
-    console.log("⚛️ MISTERI_FAMOSI DB size on mount:", MISTERI_FAMOSI?.length);
-  }, []);
-
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastScanPos = useRef<{ lat: number; lng: number } | null>(null);
   const scanTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const loadLuoghi = async (lat: number, lng: number, overrideGlobal?: boolean, forceScan?: boolean) => {
     // 0. CONTROLLO DISTANZA (Evitiamo scansioni sotto 1km per performance, a meno che non sia forzato)
-    if (lastScanPos.current && overrideGlobal === undefined && !forceScan) {
+    if (lastScanPos.current && !forceScan) {
       const R = 6371;
       const dLat = ((lat - lastScanPos.current.lat) * Math.PI) / 180;
       const dLng = ((lng - lastScanPos.current.lng) * Math.PI) / 180;
       const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat * Math.PI) / 180) * Math.cos((lastScanPos.current.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
       const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      if (d < 1) return; // Troppo vicino, non ricaricare OSM
+      if (d < 1) return; // Troppo vicino
     }
 
-    // 1. GESTIONE ABORT (Annulliamo scansioni precedenti)
+    // 1. GESTIONE ABORT
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
     lastScanPos.current = { lat, lng };
     setState('loading');
-    const activeGlobal = overrideGlobal !== undefined ? overrideGlobal : isGlobalMode;
     
-    // 2. CALCOLO ISTANTANEO FAMOSI
-    const famousLuoghi: Place[] = (MISTERI_FAMOSI || []).map((p) => {
-      const R = 6371;
-      const pLat = Number(p.lat);
-      const pLng = Number(p.lng);
-      
-      const dLat = ((pLat - lat) * Math.PI) / 180;
-      const dLng = ((pLng - lng) * Math.PI) / 180;
-      const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos((lat * Math.PI) / 180) *
-          Math.cos((pLat * Math.PI) / 180) *
-          Math.sin(dLng / 2) ** 2;
+    // 2. AGGIORNAMENTO DISTANZE FAMOSI E SCANSIONE UTENTI
+    const R = 6371;
+    const updatedFamous = allFamousPlaces.map(p => {
+      const dLat = ((p.lat - lat) * Math.PI) / 180;
+      const dLng = ((p.lng - lng) * Math.PI) / 180;
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat * Math.PI) / 180) * Math.cos((p.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
       const dist = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
-
-      return {
-        id: `famous-${p.id}`,
-        name: p.name,
-        description: p.description,
-        category: p.category,
-        lat: pLat,
-        lng: pLng,
-        distanceKm: dist,
-        isFamous: true,
-      };
+      return { ...p, distanceKm: dist };
     });
 
-    const activeRadius = activeGlobal ? 5000 : 100;
-    const initialPlaces = famousLuoghi
-      .filter(p => !isNaN(p.distanceKm) && p.distanceKm <= activeRadius)
-      .sort((a,b) => a.distanceKm - b.distanceKm);
+    const activeGlobal = overrideGlobal !== undefined ? overrideGlobal : isGlobalMode;
+    const activeRadius = activeGlobal ? 5000 : 150; // Aumentato a 150km per coprire più area senza flickers
 
-    setLuoghi(initialPlaces);
-    console.log(`📡 RADAR SCAN [${activeRadius}km]: Elite=${initialPlaces.length}`);
+    const filteredFamous = updatedFamous.filter(p => !isNaN(p.distanceKm) && p.distanceKm <= activeRadius);
 
     // 3. SCANSIONE UTENTI (Appwrite)
     try {
       const userPlacesData = await getUserPlaces(lat, lng, 100).catch(() => []);
 
       const userLuoghi: Place[] = ((userPlacesData as any) || []).map((p: any) => {
-        const R = 6371;
         const dLat = ((p.lat - lat) * Math.PI) / 180;
         const dLng = ((p.lng - lng) * Math.PI) / 180;
         const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat * Math.PI) / 180) * Math.cos((p.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
@@ -160,13 +150,13 @@ export default function HomePage() {
         };
       });
 
-      // Unione: Élite + User
-      const rawCombined = [...initialPlaces, ...userLuoghi];
+      // Unione: Élite (filtrati per raggio) + User
+      const rawCombined = [...filteredFamous, ...userLuoghi];
       
       const uniqueCombined = rawCombined.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
       const totalCombined = uniqueCombined.sort((a, b) => a.distanceKm - b.distanceKm);
 
-      console.log(`✅ SCAN FINISHED: Elite(${initialPlaces.length}) User(${userLuoghi.length}) Total(${totalCombined.length})`);
+      console.log(`✅ SCAN FINISHED: Elite(${filteredFamous.length}) User(${userLuoghi.length}) Total(${totalCombined.length})`);
 
       setLuoghi(totalCombined);
       setState('ready');
@@ -298,6 +288,8 @@ export default function HomePage() {
                   }, 800);
                 }}
                 selectedId={selectedId}
+                mapType={mapType}
+                onToggleMapType={() => setMapType(mapType === 'street' ? 'satellite' : 'street')}
               />
               {/* Reset View Button */}
               {(selectedId || (lastScanPos.current && (Math.abs(lastScanPos.current.lat - userPos.lat) > 0.01 || Math.abs(lastScanPos.current.lng - userPos.lng) > 0.01))) && (

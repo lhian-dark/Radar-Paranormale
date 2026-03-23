@@ -22,6 +22,8 @@ interface Props {
   onSelectPlace: (id: number | string) => void;
   onMapMove?: (lat: number, lng: number) => void;
   selectedId?: number | string | null;
+  mapType?: 'street' | 'satellite';
+  onToggleMapType?: () => void;
 }
 
 // Map events component to handle pans
@@ -55,7 +57,7 @@ const placeIcon = (isUser: boolean, isFamous: boolean, selected: boolean) =>
     iconAnchor: [selected ? 18 : 14, selected ? 18 : 14],
   });
 
-export default function MapInner({ userLat, userLng, places, onSelectPlace, onMapMove, selectedId }: Props) {
+export default function MapInner({ userLat, userLng, places, onSelectPlace, onMapMove, selectedId, mapType = 'street', onToggleMapType }: Props) {
   return (
     <MapContainer
       center={[userLat, userLng]}
@@ -63,10 +65,45 @@ export default function MapInner({ userLat, userLng, places, onSelectPlace, onMa
       style={{ width: '100%', height: '100%', borderRadius: '12px' }}
       zoomControl={true}
     >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-      />
+      {mapType === 'street' ? (
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        />
+      ) : (
+        <TileLayer
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
+        />
+      )}
+
+      {/* Map Type Toggle Button */}
+      <div className="leaflet-top leaflet-right" style={{ marginTop: '70px', marginRight: '10px' }}>
+        <div className="leaflet-control leaflet-bar">
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggleMapType?.();
+            }}
+            title="Cambia vista"
+            style={{
+              backgroundColor: 'white',
+              width: '34px',
+              height: '34px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              border: 'none',
+              fontSize: '18px',
+              borderRadius: '4px'
+            }}
+          >
+            {mapType === 'street' ? '🛰️' : '🗺️'}
+          </button>
+        </div>
+      </div>
 
       {/* User position */}
       <Marker position={[userLat, userLng]} icon={userIcon}>

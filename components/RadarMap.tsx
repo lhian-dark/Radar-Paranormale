@@ -22,6 +22,8 @@ interface RadarMapProps {
   onSelectPlace: (id: number | string) => void;
   onMapMove?: (lat: number, lng: number) => void;
   selectedId?: number | string | null;
+  mapType?: 'street' | 'satellite';
+  onToggleMapType?: () => void;
 }
 
 export default function RadarMap(props: RadarMapProps) {
